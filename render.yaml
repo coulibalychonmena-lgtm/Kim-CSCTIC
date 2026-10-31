@@ -1,0 +1,44 @@
+# Blueprint Render : deux services Web distincts (backend API + frontend React).
+# Les secrets sont saisis dans le tableau de bord Render (sync: false).
+services:
+  - type: web
+    name: kim-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - { key: NODE_VERSION, value: "20" }
+      - { key: SNOWFLAKE_ACCOUNT, sync: false }
+      - { key: SNOWFLAKE_USER, sync: false }
+      - { key: SNOWFLAKE_PASSWORD, sync: false }
+      - { key: SNOWFLAKE_DATABASE, sync: false }
+      - { key: SNOWFLAKE_WAREHOUSE, sync: false }
+      - { key: SNOWFLAKE_SCHEMA, sync: false }
+      - { key: GEMINI_API_KEY, sync: false }
+      - { key: GEMINI_MODEL, value: gemini-2.5-flash }
+      - { key: JWT_SECRET, generateValue: true }
+      - { key: FRONTEND_URL, sync: false }   # ex : https://kim-web.onrender.com
+      - { key: CLOUDINARY_CLOUD_NAME, sync: false }
+      - { key: CLOUDINARY_API_KEY, sync: false }
+      - { key: CLOUDINARY_API_SECRET, sync: false }
+      - { key: ADMIN_FULL_NAME, value: Administrateur }
+      - { key: ADMIN_EMAIL, sync: false }
+      - { key: ADMIN_PASSWORD, sync: false }  # 10 caractères minimum
+
+  - type: web
+    name: kim-web
+    runtime: node
+    rootDir: frontend
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - { key: NODE_VERSION, value: "20" }
+      - { key: VITE_API_URL, sync: false }   # ex : https://kim-api.onrender.com/api/v1
