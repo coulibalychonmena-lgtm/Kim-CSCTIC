@@ -9,8 +9,9 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL,
   administrator: {
     fullName: process.env.ADMIN_FULL_NAME || 'Administrateur',
-    email: process.env.ADMIN_EMAIL,
-    password: process.env.ADMIN_PASSWORD,
+    // trim() : le formulaire de connexion retire les espaces saisis ; la valeur Render doit être traitée pareil.
+    email: process.env.ADMIN_EMAIL?.trim(),
+    password: process.env.ADMIN_PASSWORD?.trim(),
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
@@ -35,7 +36,7 @@ const MINIMUM_ADMIN_PASSWORD_LENGTH = 10;
 
 /** Arrête le processus si une variable d'environnement obligatoire manque. */
 export function assertEnvironmentVariablesPresent(variableNames) {
-  const missing = variableNames.filter((variableName) => !process.env[variableName]);
+  const missing = variableNames.filter((variableName) => !process.env[variableName]?.trim());
   if (missing.length) {
     console.error(`Variables d'environnement manquantes : ${missing.join(', ')}`);
     process.exit(1);
