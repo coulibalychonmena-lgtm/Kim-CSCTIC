@@ -1,4 +1,4 @@
-import { query } from '../config/snowflake.js';
+import { query } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
 import { buildUpdateAssignments } from '../utils/sql-update-builder.js';
@@ -33,7 +33,7 @@ export async function updateCenterInformation(informationId, informationChanges)
   );
   if (!assignments.length) throw new AppError(400, 'Aucun champ à mettre à jour.');
   await query(
-    `UPDATE CENTER_INFORMATION SET ${assignments.join(', ')}, UPDATED_AT = CURRENT_TIMESTAMP() WHERE ID = ?`,
+    `UPDATE CENTER_INFORMATION SET ${assignments.join(', ')}, UPDATED_AT = NOW() WHERE ID = ?`,
     [...binds, informationId],
   );
   return { id: informationId, ...informationChanges };

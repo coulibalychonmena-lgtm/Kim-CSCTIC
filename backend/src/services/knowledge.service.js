@@ -1,27 +1,27 @@
-import { query } from '../config/snowflake.js';
-import { parseSnowflakeJsonValue } from '../utils/snowflake-value-parsing.js';
+import { query } from '../config/database.js';
+import { parseJsonValue } from '../utils/json-value-parsing.js';
 import { ROOM_REQUEST_STATUS } from '../utils/domain-values.js';
 
 const DAY_NAMES_FROM_MONDAY = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
-/** Charge l'état réel de la base (Snowflake) pour nourrir Kim à chaque message. */
+/** Charge l'état réel de la base (PostgreSQL / Supabase) pour nourrir Kim à chaque message. */
 export async function loadKnowledge() {
   const [centerInformation, rooms, activities, openingHours, approvedBookings] = await Promise.all([
     query('SELECT TITLE, CONTENT, SOURCE_LABEL, SOURCE_URL FROM CENTER_INFORMATION ORDER BY CATEGORY, TITLE'),
     query('SELECT ID, NAME, SPACE_TYPE, MAX_CAPACITY, EQUIPMENT, DESCRIPTION, PRICING, STATUS, IMAGE_URL FROM ROOMS ORDER BY NAME'),
     query(`SELECT ID, TITLE, CATEGORY, AGE_MIN, AGE_MAX, AGE_RANGE_LABEL, TOTAL_SEATS, ASSIGNED_SEATS, DESCRIPTION, SCHEDULE, ENROLLMENT_CONDITIONS, IMAGE_URL
            FROM ACTIVITIES ORDER BY CATEGORY, TITLE`),
-    query(`SELECT DAY_OF_WEEK, TO_VARCHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_VARCHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME
+    query(`SELECT DAY_OF_WEEK, TO_CHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_CHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME
            FROM OPENING_HOURS ORDER BY DAY_OF_WEEK`),
-    query(`SELECT request.ROOM_ID, room.NAME AS ROOM_NAME, TO_VARCHAR(request.REQUESTED_DATE) AS REQUESTED_DATE,
-                  TO_VARCHAR(request.START_TIME, 'HH24:MI') AS START_TIME, TO_VARCHAR(request.END_TIME, 'HH24:MI') AS END_TIME
+    query(`SELECT request.ROOM_ID, room.NAME AS ROOM_NAME, TO_CHAR(request.REQUESTED_DATE, 'YYYY-MM-DD') AS REQUESTED_DATE,
+                  TO_CHAR(request.START_TIME, 'HH24:MI') AS START_TIME, TO_CHAR(request.END_TIME, 'HH24:MI') AS END_TIME
            FROM ROOM_REQUESTS request JOIN ROOMS room ON room.ID = request.ROOM_ID
-           WHERE request.STATUS = ? AND request.REQUESTED_DATE >= CURRENT_DATE()
+           WHERE request.STATUS = ? AND request.REQUESTED_DATE >= CURRENT_DATE
            ORDER BY request.REQUESTED_DATE, request.START_TIME`, [ROOM_REQUEST_STATUS.APPROVED]),
   ]);
   return {
     centerInformation,
-    rooms: rooms.map((room) => ({ ...room, equipment: parseSnowflakeJsonValue(room.equipment, []) })),
+    rooms: rooms.map((room) => ({ ...room, equipment: parseJsonValue(room.equipment, []) })),
     activities,
     openingHours,
     approvedBookings,

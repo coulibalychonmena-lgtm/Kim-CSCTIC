@@ -1,4 +1,4 @@
-import { query } from '../config/snowflake.js';
+import { query } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
 import { buildUpdateAssignments } from '../utils/sql-update-builder.js';
@@ -32,7 +32,7 @@ function assertAgeRangeIsCoherent(minimumAge, maximumAge) {
 
 async function assertActivityTitleIsFree(title, activityIdToIgnore = null) {
   const [duplicate] = await query(
-    'SELECT ID FROM ACTIVITIES WHERE LOWER(TITLE) = LOWER(?) AND (? IS NULL OR ID <> ?)',
+    'SELECT ID FROM ACTIVITIES WHERE LOWER(TITLE) = LOWER(?) AND (?::text IS NULL OR ID <> ?)',
     [title, activityIdToIgnore, activityIdToIgnore],
   );
   if (duplicate) throw new AppError(409, `Une formation intitulée « ${title} » existe déjà.`);
@@ -151,7 +151,7 @@ export async function listRegistrations(statusFilter) {
             registration.CURRENT_LEVEL, registration.STATUS, registration.ADMIN_COMMENT, registration.SUBMITTED_AT,
             activity.ENROLLMENT_CONDITIONS AS ACTIVITY_CONDITIONS
      FROM ACTIVITY_REGISTRATIONS registration JOIN ACTIVITIES activity ON activity.ID = registration.ACTIVITY_ID
-     WHERE (? IS NULL OR registration.STATUS = ?)
+     WHERE (?::text IS NULL OR registration.STATUS = ?)
      ORDER BY registration.SUBMITTED_AT DESC`,
     [statusFilter || null, statusFilter || null],
   );

@@ -1,4 +1,4 @@
-import { query } from '../config/snowflake.js';
+import { query } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
 
@@ -21,7 +21,7 @@ export async function createPartnership(partnershipData) {
 export const listPartnerships = (statusFilter) =>
   query(
     `SELECT ID, ORGANIZATION, CONTACT_NAME, EMAIL, PHONE, PARTNERSHIP_TYPE, DESCRIPTION, STATUS, RECEIVED_AT
-     FROM PARTNERSHIP_REQUESTS WHERE (? IS NULL OR STATUS = ?) ORDER BY RECEIVED_AT DESC`,
+     FROM PARTNERSHIP_REQUESTS WHERE (?::text IS NULL OR STATUS = ?) ORDER BY RECEIVED_AT DESC`,
     [statusFilter || null, statusFilter || null],
   );
 

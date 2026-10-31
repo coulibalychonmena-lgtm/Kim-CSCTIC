@@ -6,14 +6,7 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '8h',
   frontendUrls: (process.env.FRONTEND_URL || 'http://localhost:5173')
     .split(',').map((url) => url.trim()).filter(Boolean),
-  snowflake: {
-    account: process.env.SNOWFLAKE_ACCOUNT,
-    username: process.env.SNOWFLAKE_USER,
-    password: process.env.SNOWFLAKE_PASSWORD,
-    database: process.env.SNOWFLAKE_DATABASE,
-    warehouse: process.env.SNOWFLAKE_WAREHOUSE,
-    schema: process.env.SNOWFLAKE_SCHEMA,
-  },
+  databaseUrl: process.env.DATABASE_URL,
   administrator: {
     fullName: process.env.ADMIN_FULL_NAME || 'Administrateur',
     email: process.env.ADMIN_EMAIL,
@@ -30,12 +23,9 @@ export const env = {
   },
 };
 
-export const SNOWFLAKE_VARIABLE_NAMES = [
-  'SNOWFLAKE_ACCOUNT', 'SNOWFLAKE_USER', 'SNOWFLAKE_PASSWORD',
-  'SNOWFLAKE_DATABASE', 'SNOWFLAKE_WAREHOUSE', 'SNOWFLAKE_SCHEMA',
-];
+export const DATABASE_VARIABLE_NAMES = ['DATABASE_URL'];
 export const SERVER_REQUIRED_VARIABLE_NAMES = [
-  ...SNOWFLAKE_VARIABLE_NAMES,
+  ...DATABASE_VARIABLE_NAMES,
   'GEMINI_API_KEY', 'JWT_SECRET',
   'ADMIN_EMAIL', 'ADMIN_PASSWORD',
   'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET',

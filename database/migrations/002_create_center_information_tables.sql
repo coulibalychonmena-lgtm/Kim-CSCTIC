@@ -9,17 +9,17 @@
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS CENTER_INFORMATION (
-  ID            VARCHAR(36)   DEFAULT UUID_STRING() PRIMARY KEY,
+  ID            VARCHAR(36)   DEFAULT gen_random_uuid()::text PRIMARY KEY,
   CATEGORY      VARCHAR(40)   NOT NULL,            -- ex : institution, contact, salles (texte libre)
   TITLE         VARCHAR(200)  NOT NULL,
   CONTENT       VARCHAR(4000) NOT NULL,
   SOURCE_LABEL  VARCHAR(200),
   SOURCE_URL    VARCHAR(500),
-  UPDATED_AT    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+  UPDATED_AT    TIMESTAMPTZ   DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS OPENING_HOURS (
-  DAY_OF_WEEK   NUMBER(1,0)   PRIMARY KEY,
+  DAY_OF_WEEK   SMALLINT      PRIMARY KEY,
   OPEN_TIME     TIME          NOT NULL,
   CLOSE_TIME    TIME          NOT NULL
 );

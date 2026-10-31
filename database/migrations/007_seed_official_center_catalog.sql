@@ -9,13 +9,13 @@
 
 INSERT INTO OPENING_HOURS (DAY_OF_WEEK, OPEN_TIME, CLOSE_TIME)
 SELECT * FROM (
-  SELECT 1 AS DAY_OF_WEEK, TO_TIME('08:00') AS OPEN_TIME, TO_TIME('18:00') AS CLOSE_TIME
-  UNION ALL SELECT 2, TO_TIME('08:00'), TO_TIME('18:00')
-  UNION ALL SELECT 3, TO_TIME('08:00'), TO_TIME('18:00')
-  UNION ALL SELECT 4, TO_TIME('08:00'), TO_TIME('18:00')
-  UNION ALL SELECT 5, TO_TIME('08:00'), TO_TIME('18:00')
-  UNION ALL SELECT 6, TO_TIME('09:00'), TO_TIME('13:00')
-)
+  SELECT 1::smallint AS DAY_OF_WEEK, '08:00'::time AS OPEN_TIME, '18:00'::time AS CLOSE_TIME
+  UNION ALL SELECT 2, '08:00'::time, '18:00'::time
+  UNION ALL SELECT 3, '08:00'::time, '18:00'::time
+  UNION ALL SELECT 4, '08:00'::time, '18:00'::time
+  UNION ALL SELECT 5, '08:00'::time, '18:00'::time
+  UNION ALL SELECT 6, '09:00'::time, '13:00'::time
+) AS DEFAULT_HOURS
 WHERE NOT EXISTS (SELECT 1 FROM OPENING_HOURS);
 
 INSERT INTO CENTER_INFORMATION (CATEGORY, TITLE, CONTENT, SOURCE_LABEL, SOURCE_URL)
@@ -31,23 +31,23 @@ SELECT 'institution', 'Vision du Centre',
 WHERE NOT EXISTS (SELECT 1 FROM CENTER_INFORMATION WHERE TITLE = 'Vision du Centre');
 
 INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, DESCRIPTION, STATUS)
-SELECT $$Palais des Sports / Gymnase principal$$, $$Sport et grands événements$$, ARRAY_CONSTRUCT(),
+SELECT $$Palais des Sports / Gymnase principal$$, $$Sport et grands événements$$, '[]'::jsonb,
   $$Capacité pour grands événements sportifs, cérémonies, compétitions de Taekwondo et galas.$$, 'Disponible'
 WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER($$Palais des Sports / Gymnase principal$$));
 
 INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, DESCRIPTION, STATUS)
-SELECT $$Salle de Conférence principale$$, $$Conférence$$, ARRAY_CONSTRUCT('sonorisation', 'vidéoprojecteur', 'fauteuils'),
+SELECT $$Salle de Conférence principale$$, $$Conférence$$, '["sonorisation", "vidéoprojecteur", "fauteuils"]'::jsonb,
   $$Salle équipée pour séminaires et conférences.$$, 'Disponible'
 WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER($$Salle de Conférence principale$$));
 
 INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, DESCRIPTION, STATUS)
 SELECT $$Salles de Formation TIC / Salles Informatiques$$, $$Formation TIC$$,
-  ARRAY_CONSTRUCT('postes ordinateurs', 'connexion Internet haut débit', 'écrans de présentation'),
+  '["postes ordinateurs", "connexion Internet haut débit", "écrans de présentation"]'::jsonb,
   $$Salles informatiques pour les formations aux technologies de l'information et de la communication.$$, 'Disponible'
 WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER($$Salles de Formation TIC / Salles Informatiques$$));
 
 INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, DESCRIPTION, STATUS)
-SELECT $$Salles Polyvalentes et Salles de Réunion$$, $$Polyvalente et réunion$$, ARRAY_CONSTRUCT(),
+SELECT $$Salles Polyvalentes et Salles de Réunion$$, $$Polyvalente et réunion$$, '[]'::jsonb,
   $$Adaptées aux ateliers, réunions de travail ou petits événements associatifs.$$, 'Disponible'
 WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER($$Salles Polyvalentes et Salles de Réunion$$));
 

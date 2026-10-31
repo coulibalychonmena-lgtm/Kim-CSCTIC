@@ -6,7 +6,7 @@ Kim répond en français, anglais et coréen, recueille les demandes (salles, fo
 **Seules les données établies par le TDR sont préchargées (migrations 004 et 007)** : horaires, missions, vision, 4 types d'espaces, 5 formations et le mot du Directeur. Les salles, formations, informations du Centre (contacts, missions, vision…) et horaires sont saisis et modifiés par l'administration depuis `/admin`, sans toucher au code. Tant qu'une rubrique est vide, Kim répond qu'il ne possède pas l'information et propose de transmettre la question à un agent.
 
 ```
-database/migrations/   scripts SQL Snowflake (structure, plus le catalogue officiel de départ)
+database/migrations/   scripts SQL PostgreSQL / Supabase (structure, plus le catalogue officiel de départ)
 backend/               API Node.js / Express (config, controllers, services, middlewares, routes)
 frontend/              React + Vite (components, pages, services, context, i18n, styles)
 docs/                  livrables et recette
@@ -14,13 +14,13 @@ render.yaml            déploiement Render (2 services Web)
 ```
 
 ## 1. Prérequis
-Node.js 20+, un compte Snowflake (base, entrepôt, schéma), une clé Google Gemini (Gemini Flash gratuit), un dépôt GitHub public.
+Node.js 20+, un projet Supabase gratuit (base PostgreSQL), une clé Google Gemini (Gemini Flash gratuit), un dépôt GitHub public.
 
 ## 2. Démarrage local
 ```bash
 # Backend
 cd backend
-cp .env.example .env                 # renseigner Snowflake, Gemini, Cloudinary, JWT_SECRET, ADMIN_*
+cp .env.example .env                 # renseigner DATABASE_URL (Supabase), Gemini, Cloudinary, JWT_SECRET, ADMIN_*
 npm install
 npm run migrate                      # crée/met à jour les tables (rejouable sans risque)
 npm run dev                          # http://localhost:4000/api/v1/health
@@ -31,21 +31,20 @@ cp .env.example .env                 # VITE_API_URL=http://localhost:4000/api/v1
 npm install
 npm run dev                          # http://localhost:5173  (admin : /admin/login)
 ```
-Variables backend : `SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, SNOWFLAKE_DATABASE, SNOWFLAKE_WAREHOUSE, SNOWFLAKE_SCHEMA, GEMINI_API_KEY, PORT, JWT_SECRET` + `CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET` (photos) et `ADMIN_EMAIL, ADMIN_PASSWORD` (connexion admin). Optionnelles : `GEMINI_MODEL`, `FRONTEND_URL`, `JWT_EXPIRES_IN`, `ADMIN_FULL_NAME`.
+Variables backend : `DATABASE_URL` (URI « Session pooler » de Supabase), `GEMINI_API_KEY, PORT, JWT_SECRET` + `CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET` (photos) et `ADMIN_EMAIL, ADMIN_PASSWORD` (connexion admin). Optionnelles : `GEMINI_MODEL`, `FRONTEND_URL`, `JWT_EXPIRES_IN`, `ADMIN_FULL_NAME`.
 
 **Connexion administrateur :** elle ne dépend d'aucune table. Elle est définie uniquement par `ADMIN_EMAIL` et `ADMIN_PASSWORD` (10 caractères minimum) dans `.env` (ou dans les variables Render). Changer ces variables et redémarrer suffit à changer l'accès. Le serveur refuse de démarrer si elles manquent.
 
 **Administration invisible pour les visiteurs :** aucun lien ni bouton ne mène à l'administration depuis le site public. L'équipe y accède en saisissant directement l'adresse `/admin/login`. Toutes les routes `/api/v1/admin/*` exigent un jeton JWT valide.
 
-**Photos (Cloudinary) :** créez un compte Cloudinary gratuit, puis copiez *Cloud name*, *API Key* et *API Secret* dans `.env`. Les photos sont envoyées par l'administration depuis les formulaires Salle et Formation ; l'adresse est enregistrée dans Snowflake.
+**Photos (Cloudinary) :** créez un compte Cloudinary gratuit, puis copiez *Cloud name*, *API Key* et *API Secret* dans `.env`. Les photos sont envoyées par l'administration depuis les formulaires Salle et Formation ; l'adresse est enregistrée dans Supabase.
 
-### Usage de Snowflake
-Snowflake est la seule base de données : aucune donnée n'est gardée en mémoire ou en dur dans l'application.
+### Usage de Supabase (PostgreSQL)
+Supabase est la seule base de données : aucune donnée n'est gardée en mémoire ou en dur dans l'application.
 - **Catalogue** : `ROOMS`, `ACTIVITIES`, `OPENING_HOURS`, `CENTER_INFORMATION`. Kim les relit à chaque message (disponibilités, places restantes, conditions d'inscription, horaires).
 - **Suivi des demandes** : `ROOM_REQUESTS`, `ACTIVITY_REGISTRATIONS`, `PARTNERSHIP_REQUESTS`. Le tableau de bord lit ces tables et se rafraîchit tout seul (15 s).
 - **Conversations** : `CHAT_LOGS` (historique, drapeau d'intervention humaine), `CHAT_TAKEOVERS` et `HUMAN_MESSAGES` (reprise en main par un agent).
-- **Scripts SQL** : `database/migrations/001` à `007`, exécutés dans l'ordre par `npm run migrate`. Pour la démo : se connecter à Snowflake et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
-- Non utilisé : Snowflake Cortex (recherche sémantique, bonus facultatif).
+- **Scripts SQL** : `database/migrations/001` à `008`, exécutés dans l'ordre par `npm run migrate` (rejouables sans risque ; la 008 active la sécurité RLS qui bloque l'API publique Supabase, seul le backend accède aux données). Pour la démo : ouvrir *SQL Editor* dans Supabase et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
 
 ## 3. Renseigner les données du Centre (depuis l'interface)
 Connectez-vous sur `/admin/login`, puis :
@@ -64,7 +63,7 @@ Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ v
 1. Poussez ce dossier sur un dépôt GitHub public (branche `main`).
 2. Render → **New → Blueprint** → choisissez le dépôt : `render.yaml` crée `kim-api` et `kim-web`.
 3. Renseignez les variables (`sync: false`) de `kim-api`, puis `VITE_API_URL` de `kim-web` (URL de l'API + `/api/v1`) et `FRONTEND_URL` de `kim-api` (URL du frontend).
-4. Renseignez aussi `CLOUDINARY_*`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` sur `kim-api`, puis exécutez `npm run migrate` avec les mêmes variables Snowflake (depuis votre poste ou le Shell Render).
+4. Renseignez aussi `CLOUDINARY_*`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` sur `kim-api`, puis exécutez `npm run migrate` avec la même `DATABASE_URL` (depuis votre poste ou le Shell Render).
 5. Chaque `git push` sur `main` réinstalle les dépendances et redéploie.
 
 ## 5. API (`/api/v1`)
@@ -92,7 +91,7 @@ Assistance humaine : depuis l'onglet « Assistance humaine », l'agent ouvre une
 Règles métier appliquées côté serveur : date non passée, fin après début, capacité de la salle, créneau déjà validé (409), âge min/max, quota de places (liste d'attente si complet), motif obligatoire pour un refus, avertissement hors horaires d'ouverture (uniquement si des horaires ont été saisis). Les sources citées par Kim sont filtrées sur les adresses saisies par l'administration.
 
 ## 6. Limites connues
-- Le code n'a pas pu être exécuté contre de vrais Snowflake/Gemini : vérifiez d'abord `npm run migrate`, puis la saisie d'une salle dans `/admin`, puis un message de chat.
+- Le code n'a pas pu être exécuté contre de vrais Supabase/Gemini : vérifiez d'abord `npm run migrate`, puis la saisie d'une salle dans `/admin`, puis un message de chat.
 - Le logo `frontend/public/logo.png` a été découpé dans une capture d'écran du site : remplacez-le par le fichier officiel haute définition.
 - Le tableau de bord est en français uniquement (le TDR impose le multilingue côté visiteur).
 - Un seul administrateur (variables `ADMIN_*`). La table `USERS` du TDR reste créée mais n'est pas utilisée.

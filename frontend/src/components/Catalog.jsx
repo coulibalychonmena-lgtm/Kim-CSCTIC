@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { publicService } from '../services/publicService.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
-/** Catalogue lu en direct depuis l'API (donc depuis Snowflake) : ce que l'administration saisit apparaît ici. */
+/** Catalogue lu en direct depuis l'API (donc depuis la base Supabase) : ce que l'administration saisit apparaît ici. */
 export default function Catalog() {
   const { translate } = useLanguage();
   const [catalog, setCatalog] = useState({ loading: true, failed: false, rooms: [], activities: [] });

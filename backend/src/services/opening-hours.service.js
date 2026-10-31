@@ -1,11 +1,11 @@
-import { query } from '../config/snowflake.js';
+import { query } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { validateData } from '../middlewares/validate.middleware.js';
 import { openingDaySchema } from '../validators/request-body-schemas.js';
 
 export const listOpeningHours = () =>
   query(
-    `SELECT DAY_OF_WEEK, TO_VARCHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_VARCHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME
+    `SELECT DAY_OF_WEEK, TO_CHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_CHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME
      FROM OPENING_HOURS ORDER BY DAY_OF_WEEK`,
   );
 
@@ -29,7 +29,7 @@ export async function replaceOpeningHours(openDays) {
   await query('DELETE FROM OPENING_HOURS');
   for (const day of validatedDays) {
     await query(
-      'INSERT INTO OPENING_HOURS (DAY_OF_WEEK, OPEN_TIME, CLOSE_TIME) VALUES (?, TO_TIME(?), TO_TIME(?))',
+      'INSERT INTO OPENING_HOURS (DAY_OF_WEEK, OPEN_TIME, CLOSE_TIME) VALUES (?, ?::time, ?::time)',
       [day.day_of_week, day.open_time, day.close_time],
     );
   }

@@ -1,11 +1,11 @@
-import { query } from '../config/snowflake.js';
+import { query } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
-import { parseSnowflakeJsonValue } from '../utils/snowflake-value-parsing.js';
+import { parseJsonValue } from '../utils/json-value-parsing.js';
 import { buildUpdateAssignments } from '../utils/sql-update-builder.js';
 import { ROOM_AVAILABILITY_STATUSES, ROOM_REQUEST_STATUS } from '../utils/domain-values.js';
 
-const toRoom = (roomRow) => ({ ...roomRow, equipment: parseSnowflakeJsonValue(roomRow.equipment, []) });
+const toRoom = (roomRow) => ({ ...roomRow, equipment: parseJsonValue(roomRow.equipment, []) });
 
 // ---------------------------------------------------------------------------
 // Catalogue des salles (modifiable par l'administration)
@@ -21,7 +21,7 @@ export async function listRooms() {
 
 async function assertRoomNameIsFree(name, roomIdToIgnore = null) {
   const [duplicate] = await query(
-    'SELECT ID FROM ROOMS WHERE LOWER(NAME) = LOWER(?) AND (? IS NULL OR ID <> ?)',
+    'SELECT ID FROM ROOMS WHERE LOWER(NAME) = LOWER(?) AND (?::text IS NULL OR ID <> ?)',
     [name, roomIdToIgnore, roomIdToIgnore],
   );
   if (duplicate) throw new AppError(409, `Une salle nommée « ${name} » existe déjà.`);
@@ -32,7 +32,7 @@ export async function createRoom(roomData) {
   const roomId = generateIdentifier();
   await query(
     `INSERT INTO ROOMS (ID, NAME, SPACE_TYPE, MAX_CAPACITY, EQUIPMENT, DESCRIPTION, PRICING, STATUS, IMAGE_URL)
-     SELECT ?, ?, ?, ?, CAST(PARSE_JSON(?) AS ARRAY), ?, ?, ?, ?`,
+     VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?)`,
     [
       roomId, roomData.name, roomData.space_type, roomData.max_capacity ?? null,
       JSON.stringify(roomData.equipment ?? []), roomData.description ?? null, roomData.pricing ?? null,
@@ -87,7 +87,7 @@ export async function deleteRoom(roomId) {
 async function buildOpeningHoursWarnings(requestedDate, startTime, endTime) {
   const dayOfWeek = new Date(`${requestedDate}T00:00:00Z`).getUTCDay() || 7; // 1 = lundi ... 7 = dimanche
   const [openingHours] = await query(
-    `SELECT TO_VARCHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_VARCHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME
+    `SELECT TO_CHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_CHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME
      FROM OPENING_HOURS WHERE DAY_OF_WEEK = ?`,
     [dayOfWeek],
   );
@@ -109,9 +109,9 @@ async function buildOpeningHoursWarnings(requestedDate, startTime, endTime) {
 async function hasApprovedOverlap(roomId, requestedDate, startTime, endTime, requestIdToIgnore = null) {
   const [{ overlap_count: overlapCount }] = await query(
     `SELECT COUNT(*) AS OVERLAP_COUNT FROM ROOM_REQUESTS
-     WHERE ROOM_ID = ? AND REQUESTED_DATE = TO_DATE(?) AND STATUS = ?
-       AND START_TIME < TO_TIME(?) AND END_TIME > TO_TIME(?)
-       AND (? IS NULL OR ID <> ?)`,
+     WHERE ROOM_ID = ? AND REQUESTED_DATE = ?::date AND STATUS = ?
+       AND START_TIME < ?::time AND END_TIME > ?::time
+       AND (?::text IS NULL OR ID <> ?)`,
     [roomId, requestedDate, ROOM_REQUEST_STATUS.APPROVED, endTime, startTime, requestIdToIgnore, requestIdToIgnore],
   );
   return Number(overlapCount) > 0;
@@ -142,7 +142,7 @@ export async function createRoomRequest(requestData) {
     `INSERT INTO ROOM_REQUESTS
        (ID, REQUESTER_LASTNAME, REQUESTER_FIRSTNAME, EMAIL, PHONE, ROOM_ID, REQUESTED_DATE,
         START_TIME, END_TIME, ATTENDEES, EXTRA_EQUIPMENT, PURPOSE, STATUS)
-     SELECT ?, ?, ?, ?, ?, ?, TO_DATE(?), TO_TIME(?), TO_TIME(?), ?, CAST(PARSE_JSON(?) AS ARRAY), ?, ?`,
+     VALUES (?, ?, ?, ?, ?, ?, ?::date, ?::time, ?::time, ?, ?::jsonb, ?, ?)`,
     [
       requestId, requestData.requester_lastname, requestData.requester_firstname, requestData.email, requestData.phone,
       requestData.room_id, requestData.requested_date, requestData.start_time, requestData.end_time, requestData.attendees,
@@ -155,25 +155,25 @@ export async function createRoomRequest(requestData) {
 export async function listRoomRequests(statusFilter) {
   const requestRows = await query(
     `SELECT request.ID, request.REQUESTER_LASTNAME, request.REQUESTER_FIRSTNAME, request.EMAIL, request.PHONE,
-            request.ROOM_ID, room.NAME AS ROOM_NAME, TO_VARCHAR(request.REQUESTED_DATE) AS REQUESTED_DATE,
-            TO_VARCHAR(request.START_TIME, 'HH24:MI') AS START_TIME, TO_VARCHAR(request.END_TIME, 'HH24:MI') AS END_TIME,
+            request.ROOM_ID, room.NAME AS ROOM_NAME, TO_CHAR(request.REQUESTED_DATE, 'YYYY-MM-DD') AS REQUESTED_DATE,
+            TO_CHAR(request.START_TIME, 'HH24:MI') AS START_TIME, TO_CHAR(request.END_TIME, 'HH24:MI') AS END_TIME,
             request.ATTENDEES, request.EXTRA_EQUIPMENT, request.PURPOSE, request.STATUS,
             request.ADMIN_COMMENT, request.CREATED_AT
      FROM ROOM_REQUESTS request JOIN ROOMS room ON room.ID = request.ROOM_ID
-     WHERE (? IS NULL OR request.STATUS = ?)
+     WHERE (?::text IS NULL OR request.STATUS = ?)
      ORDER BY request.CREATED_AT DESC`,
     [statusFilter || null, statusFilter || null],
   );
   return requestRows.map((requestRow) => ({
     ...requestRow,
-    extra_equipment: parseSnowflakeJsonValue(requestRow.extra_equipment, []),
+    extra_equipment: parseJsonValue(requestRow.extra_equipment, []),
   }));
 }
 
 export async function updateRoomRequestStatus(requestId, { status, admin_comment: adminComment }) {
   const [existingRequest] = await query(
-    `SELECT ID, ROOM_ID, TO_VARCHAR(REQUESTED_DATE) AS REQUESTED_DATE,
-            TO_VARCHAR(START_TIME, 'HH24:MI') AS START_TIME, TO_VARCHAR(END_TIME, 'HH24:MI') AS END_TIME
+    `SELECT ID, ROOM_ID, TO_CHAR(REQUESTED_DATE, 'YYYY-MM-DD') AS REQUESTED_DATE,
+            TO_CHAR(START_TIME, 'HH24:MI') AS START_TIME, TO_CHAR(END_TIME, 'HH24:MI') AS END_TIME
      FROM ROOM_REQUESTS WHERE ID = ?`,
     [requestId],
   );

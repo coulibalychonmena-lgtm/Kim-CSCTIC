@@ -1,4 +1,4 @@
-import { query } from '../config/snowflake.js';
+import { query } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { validateData } from '../middlewares/validate.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';

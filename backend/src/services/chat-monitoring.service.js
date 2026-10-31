@@ -1,4 +1,4 @@
-import { query } from '../config/snowflake.js';
+import { query } from '../config/database.js';
 import { listHumanMessages, isTakeoverActive } from './human-takeover.service.js';
 
 const CHAT_LOG_COLUMNS = 'ID, SESSION_ID, USER_MESSAGE, KIM_RESPONSE, DETECTED_LANGUAGE, CITED_SOURCE, NEEDS_HUMAN, CREATED_AT';

@@ -9,7 +9,7 @@ export function buildUpdateAssignments(columnByField, changes, { arrayFields = [
   for (const [field, column] of Object.entries(columnByField)) {
     if (changes[field] === undefined) continue;
     if (arrayFields.includes(field)) {
-      assignments.push(`${column} = CAST(PARSE_JSON(?) AS ARRAY)`);
+      assignments.push(`${column} = ?::jsonb`);
       binds.push(JSON.stringify(changes[field] ?? []));
     } else {
       assignments.push(`${column} = ?`);

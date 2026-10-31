@@ -1,10 +1,10 @@
 # Livrables et recette — Projet Kim / CSCTICAO
 
 Coché = livré et vérifié statiquement (syntaxe, import des modules, validation des données, build du frontend).
-Les tests contre de vrais services (Snowflake, Gemini, Render) restent à faire avec vos clés.
+Les tests contre de vrais services (Supabase, Gemini, Render) restent à faire avec vos clés.
 
 ## Livrables
-- [x] **Structure Snowflake** : `database/migrations/001_create_operational_tables.sql` (7 tables du TDR §4) et `002_create_center_information_tables.sql` (informations du Centre, horaires). Aucune donnée n'est insérée.
+- [x] **Structure Supabase (PostgreSQL)** : `database/migrations/001_create_operational_tables.sql` (7 tables du TDR §4) et `002_create_center_information_tables.sql` (informations du Centre, horaires). Aucune donnée n'est insérée.
 - [x] **Backend Express (MVC / services)** : configuration, contrôleurs, services, middlewares (JWT, validation, erreurs, CORS), routes du TDR §5.2.
 - [x] **Gestion des données par l'administration** : création, modification et suppression des salles, formations, informations du Centre et horaires, depuis l'interface `/admin`, sans modifier le code.
 - [x] **Assistant Kim** : service Gemini, prompt système (TDR §7.1), sorties JSON structurées, création de demandes sans jamais les confirmer.
@@ -21,5 +21,5 @@ Les tests contre de vrais services (Snowflake, Gemini, Render) restent à faire 
 - [ ] Après saisie de 5 formations et des salles par l'administration, Kim s'appuie dessus
 - [ ] Une demande de salle affiche « En attente de validation humaine »
 - [ ] La demande apparaît dans le tableau de bord (actualisation sous 15 s)
-- [ ] L'administrateur change le statut dans Snowflake et consulte l'historique
-- [ ] Aucune donnée codée en dur : tout passe par Node.js et Snowflake
+- [ ] L'administrateur change le statut dans Supabase et consulte l'historique
+- [ ] Aucune donnée codée en dur : tout passe par Node.js et Supabase

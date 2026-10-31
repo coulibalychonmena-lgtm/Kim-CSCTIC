@@ -1,4 +1,4 @@
-import { query } from '../config/snowflake.js';
+import { query } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
 
@@ -17,9 +17,8 @@ export async function isTakeoverActive(sessionId) {
 export async function startTakeover(sessionId) {
   assertValidSessionId(sessionId);
   await query(
-    `INSERT INTO CHAT_TAKEOVERS (SESSION_ID)
-     SELECT ? WHERE NOT EXISTS (SELECT 1 FROM CHAT_TAKEOVERS WHERE SESSION_ID = ?)`,
-    [sessionId, sessionId],
+    'INSERT INTO CHAT_TAKEOVERS (SESSION_ID) VALUES (?) ON CONFLICT (SESSION_ID) DO NOTHING',
+    [sessionId],
   );
   return { session_id: sessionId, takeover_active: true };
 }

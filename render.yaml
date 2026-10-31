@@ -13,12 +13,7 @@ services:
     healthCheckPath: /api/v1/health
     envVars:
       - { key: NODE_VERSION, value: "20" }
-      - { key: SNOWFLAKE_ACCOUNT, sync: false }
-      - { key: SNOWFLAKE_USER, sync: false }
-      - { key: SNOWFLAKE_PASSWORD, sync: false }
-      - { key: SNOWFLAKE_DATABASE, sync: false }
-      - { key: SNOWFLAKE_WAREHOUSE, sync: false }
-      - { key: SNOWFLAKE_SCHEMA, sync: false }
+      - { key: DATABASE_URL, sync: false }   # Supabase → Connect → Session pooler (URI)
       - { key: GEMINI_API_KEY, sync: false }
       - { key: GEMINI_MODEL, value: gemini-2.5-flash }
       - { key: JWT_SECRET, generateValue: true }
