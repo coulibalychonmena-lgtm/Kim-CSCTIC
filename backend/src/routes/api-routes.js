@@ -12,6 +12,7 @@ import * as centerInformationController from '../controllers/center-information.
 import * as openingHoursController from '../controllers/opening-hours.controller.js';
 import { receiveImageUpload } from '../middlewares/image-upload.middleware.js';
 import * as imagesController from '../controllers/images.controller.js';
+import * as siteBackgroundsController from '../controllers/site-backgrounds.controller.js';
 import * as dashboardAndMonitoringController from '../controllers/dashboard-and-monitoring.controller.js';
 
 const router = Router();
@@ -35,6 +36,7 @@ router.get('/rooms', roomsController.listRooms);
 router.get('/activities', activitiesController.listActivities);
 router.get('/opening-hours', openingHoursController.listOpeningHours);
 router.get('/center-information', centerInformationController.listCenterInformation);
+router.get('/site-backgrounds', siteBackgroundsController.listSiteBackgrounds);
 
 // --- Demandes déposées par les visiteurs (public) ---
 router.post('/rooms/request', limitRequests(60_000, 10), validateBody(bodySchemas.roomRequestSchema), roomsController.createRoomRequest);
@@ -74,6 +76,8 @@ router.patch('/admin/center-information/:id', adminOnly, validateBody(bodySchema
 router.delete('/admin/center-information/:id', adminOnly, centerInformationController.deleteCenterInformation);
 
 router.post('/admin/images', adminOnly, receiveImageUpload, imagesController.uploadImage);
+
+router.put('/admin/site-backgrounds/:slot', adminOnly, validateBody(bodySchemas.siteBackgroundSchema), siteBackgroundsController.setSiteBackground);
 
 router.put('/admin/opening-hours', adminOnly, openingHoursController.replaceOpeningHours);
 

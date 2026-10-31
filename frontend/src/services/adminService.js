@@ -59,6 +59,9 @@ export const adminService = {
   deleteCenterInformation: (token, informationId) =>
     sendApiRequest(`/admin/center-information/${informationId}`, authorized(token, { method: 'DELETE' })).then(extractData),
 
+  setSiteBackground: (token, slot, imageUrl) =>
+    sendApiRequest(`/admin/site-backgrounds/${encodeURIComponent(slot)}`, authorized(token, { method: 'PUT', body: { image_url: imageUrl } })).then(extractData),
+
   listOpeningHours: () => sendApiRequest('/opening-hours').then(extractData),
   replaceOpeningHours: (token, openDays) =>
     sendApiRequest('/admin/opening-hours', authorized(token, { method: 'PUT', body: { days: openDays } })).then(extractData),

@@ -9,6 +9,7 @@ import HumanAssistanceTab from '../components/admin/HumanAssistanceTab.jsx';
 import RoomCatalogTab from '../components/admin/RoomCatalogTab.jsx';
 import ActivityCatalogTab from '../components/admin/ActivityCatalogTab.jsx';
 import CenterInformationTab from '../components/admin/CenterInformationTab.jsx';
+import SiteImagesTab from '../components/admin/SiteImagesTab.jsx';
 
 const DASHBOARD_TABS = [
   { id: 'room-requests', label: 'Réservations de salles', Component: RoomRequestsTab },
@@ -18,6 +19,7 @@ const DASHBOARD_TABS = [
   { id: 'room-catalog', label: 'Salles et espaces', Component: RoomCatalogTab },
   { id: 'activity-catalog', label: 'Formations', Component: ActivityCatalogTab },
   { id: 'center-information', label: 'Informations et horaires', Component: CenterInformationTab },
+  { id: 'site-images', label: 'Images du site', Component: SiteImagesTab },
 ];
 
 export default function AdminDashboardPage() {

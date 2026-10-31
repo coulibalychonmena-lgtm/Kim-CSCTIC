@@ -26,3 +26,4 @@ export const PARTNERSHIP_STATUSES = ['Nouveau', "En cours d'étude", 'Traité', 
 export const PARTNERSHIP_TYPES = ['Technique', 'Financier', 'Événementiel', 'Pédagogique'];
 export const ACTIVITY_CATEGORIES = ['Sport', 'TIC', 'Langue', 'Culture'];
 export const SUPPORTED_LANGUAGES = ['fr', 'en', 'ko'];
+export const SITE_BACKGROUND_SLOTS = ['hero', 'services', 'evenements'];

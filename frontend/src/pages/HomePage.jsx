@@ -1,9 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import ChatWindow from '../components/ChatWindow.jsx';
 import QuickActions from '../components/QuickActions.jsx';
 import Catalog from '../components/Catalog.jsx';
-import DirectorMessage from '../components/DirectorMessage.jsx';
 import ModalDialog from '../components/ModalDialog.jsx';
 import RoomRequestForm from '../components/forms/RoomRequestForm.jsx';
 import RegistrationForm from '../components/forms/RegistrationForm.jsx';
@@ -20,8 +20,11 @@ const FORMS = {
 export default function HomePage() {
   const { translate } = useLanguage();
   const { addRequestSummary } = useChat();
-  const [open, setOpen] = useState(null);
-  const closeForm = useCallback(() => setOpen(null), []);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedForm = searchParams.get('form');
+  const open = Object.hasOwn(FORMS, requestedForm ?? '') ? requestedForm : null;
+  const setOpen = useCallback((formKey) => setSearchParams({ form: formKey }), [setSearchParams]);
+  const closeForm = useCallback(() => setSearchParams({}), [setSearchParams]);
 
   const activeForm = open ? FORMS[open] : null;
 
@@ -36,7 +39,6 @@ export default function HomePage() {
         </div>
         <aside className="home__aside"><Catalog /></aside>
       </main>
-      <DirectorMessage />
       {activeForm && (
         <ModalDialog title={translate(activeForm.titleKey)} onClose={closeForm}>
           <activeForm.Component

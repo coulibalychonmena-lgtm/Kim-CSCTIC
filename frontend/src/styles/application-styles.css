@@ -198,3 +198,26 @@ td.actions { white-space: nowrap; display: flex; gap: .35rem; flex-wrap: wrap; }
 .thread__agent { background: var(--orange-bg); border-left: 4px solid var(--orange); padding: .4rem .7rem; border-radius: 12px; white-space: pre-wrap; margin: 0 0 .4rem; }
 .reply-form { display: grid; gap: .5rem; margin-top: 1rem; }
 .takeover-bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+
+/* ---------- Page d'accueil : sections à image d'arrière-plan (images modifiables dans /admin) ---------- */
+.btn--large { padding: .85rem 1.5rem; font-size: 1.05rem; }
+.btn--light { background: #fff; color: var(--ink); border-color: #fff; }
+.btn--light:hover:not(:disabled) { background: var(--orange-bg); }
+.bg-section { position: relative; isolation: isolate; color: #fff; background-color: var(--ink); background-size: cover; background-position: center; }
+.bg-section::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.55) 100%); }
+.bg-section__inner { max-width: 1180px; margin: 0 auto; padding: 4rem 1rem; }
+.bg-section--hero .bg-section__inner { padding: clamp(4rem, 14vh, 8rem) 1rem; }
+.bg-section--hero h1 { font-size: clamp(2rem, 5vw, 3.25rem); max-width: 18ch; margin-bottom: 1rem; }
+.bg-section__title { font-size: clamp(1.5rem, 3.5vw, 2.1rem); color: #fff; margin-bottom: .75rem; }
+.bg-section__lead { max-width: 60ch; font-size: 1.1rem; margin-bottom: 1.75rem; }
+.bg-section--center { text-align: center; }
+.bg-section--center::before { background: rgba(0,0,0,.68); }
+.bg-section--center .bg-section__lead { margin-left: auto; margin-right: auto; }
+.cta-row { display: flex; flex-wrap: wrap; gap: .75rem; }
+.cta-row--center { justify-content: center; }
+.landing-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.landing-card { background: #fff; color: var(--ink); border-top: 6px solid var(--orange); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
+.landing-card h3 { font-size: 1.2rem; margin: 0; }
+.landing-card p { flex: 1; margin: 0 0 .75rem; color: var(--ink-soft); }
+.landing-card .btn { color: #fff; }
+.image-field { margin: 0 0 .5rem; }

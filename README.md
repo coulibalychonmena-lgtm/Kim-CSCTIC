@@ -44,7 +44,7 @@ Supabase est la seule base de données : aucune donnée n'est gardée en mémoir
 - **Catalogue** : `ROOMS`, `ACTIVITIES`, `OPENING_HOURS`, `CENTER_INFORMATION`. Kim les relit à chaque message (disponibilités, places restantes, conditions d'inscription, horaires).
 - **Suivi des demandes** : `ROOM_REQUESTS`, `ACTIVITY_REGISTRATIONS`, `PARTNERSHIP_REQUESTS`. Le tableau de bord lit ces tables et se rafraîchit tout seul (15 s).
 - **Conversations** : `CHAT_LOGS` (historique, drapeau d'intervention humaine), `CHAT_TAKEOVERS` et `HUMAN_MESSAGES` (reprise en main par un agent).
-- **Scripts SQL** : `database/migrations/001` à `008`, exécutés dans l'ordre par `npm run migrate` (rejouables sans risque ; la 008 active la sécurité RLS qui bloque l'API publique Supabase, seul le backend accède aux données). Pour la démo : ouvrir *SQL Editor* dans Supabase et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
+- **Scripts SQL** : `database/migrations/001` à `009`, exécutés dans l'ordre par `npm run migrate` (rejouables sans risque ; la 008 active la sécurité RLS (la 009 crée `SITE_BACKGROUNDS`, protégée de la même façon) qui bloque l'API publique Supabase, seul le backend accède aux données). Pour la démo : ouvrir *SQL Editor* dans Supabase et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
 
 ## 3. Renseigner les données du Centre (depuis l'interface)
 Connectez-vous sur `/admin/login`, puis :
@@ -53,9 +53,10 @@ Connectez-vous sur `/admin/login`, puis :
 |---|---|
 | **Salles et espaces** | ajouter, modifier, supprimer une salle ; photo, capacité, équipements, tarif, statut « Disponible / En maintenance » |
 | **Formations** | ajouter, modifier, supprimer une formation ; photo, conditions d'inscription (niveau, adhésion), catégorie, tranche d'âge, nombre de places, horaires, description |
+| **Images du site** | remplacer, pour chacune des 3 sections de la page d'accueil (bandeau d'accueil, « Faire une demande », « Parler à Kim »), l'image d'arrière-plan ; « Rétablir l'image par défaut » restaure celle fournie dans `frontend/public/backgrounds/` |
 | **Informations et horaires** | contacts, adresse, réseaux sociaux, missions, vision… avec leur source officielle ; horaires d'ouverture jour par jour |
 
-Le **Mot du Directeur Général** (migration 004) s'affiche en bas de la page d'accueil ; il se modifie dans « Informations et horaires » (rubrique `direction`). Si une salle ou une formation a une photo, Kim l'affiche quand le visiteur demande à la voir.
+Le **Mot du Directeur Général** (migration 004) s'affiche en bas de la page d'accueil (`/`) ; le chat et les formulaires sont sur `/chat` (`/chat?form=room`, `register` ou `partner` ouvre directement le formulaire) ; il se modifie dans « Informations et horaires » (rubrique `direction`). Si une salle ou une formation a une photo, Kim l'affiche quand le visiteur demande à la voir.
 
 Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ vidé est réellement effacé (par exemple, retirer le nombre de places supprime la limite). Une salle ou une formation déjà liée à des demandes ne peut pas être supprimée : mettez la salle « En maintenance », ou traitez d'abord les pré-inscriptions.
 
@@ -70,13 +71,14 @@ Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ v
 | Méthode | Route | Accès |
 |---|---|---|
 | POST | `/chat/message` | public |
-| GET | `/rooms` · `/activities` · `/opening-hours` · `/center-information` | public |
+| GET | `/rooms` · `/activities` · `/opening-hours` · `/center-information` · `/site-backgrounds` | public |
 | POST | `/rooms/request` · `/activities/register` · `/partnerships` | public |
 | POST | `/auth/login` | public (renvoie le JWT) |
 | GET · PATCH | `/admin/rooms/requests` · `/admin/rooms/requests/:id` | admin |
 | GET · PATCH | `/admin/activities/registrations` · `/admin/activities/registrations/:id` | admin |
 | GET · PATCH | `/admin/partnerships` · `/admin/partnerships/:id` | admin |
 | GET | `/admin/chats/flagged` · `/admin/chats/session/:sessionId` · `/admin/stats` | admin |
+| PUT | `/admin/site-backgrounds/:slot` (`hero`, `services`, `evenements` ; `image_url` vide = image par défaut) | admin |
 | POST · DELETE | `/admin/chats/session/:sessionId/takeover` (reprendre / rendre la main) | admin |
 | POST | `/admin/chats/session/:sessionId/reply` (message de l'agent au visiteur) | admin |
 | GET | `/chat/session/:sessionId/human-messages` (le chat du visiteur relit les réponses de l'agent) | public |

@@ -111,3 +111,7 @@ export const openingDaySchema = {
   open_time: { type: 'time', required: true },
   close_time: { type: 'time', required: true },
 };
+
+export const siteBackgroundSchema = {
+  image_url: { type: 'url', max: 500, nullable: true },
+};
