@@ -9,6 +9,9 @@ import HumanAssistanceTab from '../components/admin/HumanAssistanceTab.jsx';
 import RoomCatalogTab from '../components/admin/RoomCatalogTab.jsx';
 import ActivityCatalogTab from '../components/admin/ActivityCatalogTab.jsx';
 import CenterInformationTab from '../components/admin/CenterInformationTab.jsx';
+import PresentationsTab from '../components/admin/PresentationsTab.jsx';
+import VideosTab from '../components/admin/VideosTab.jsx';
+import SuggestionsTab from '../components/admin/SuggestionsTab.jsx';
 import EventsTab from '../components/admin/EventsTab.jsx';
 import NewsTab from '../components/admin/NewsTab.jsx';
 import SiteImagesTab from '../components/admin/SiteImagesTab.jsx';
@@ -21,6 +24,9 @@ const DASHBOARD_TABS = [
   { id: 'room-catalog', label: 'Salles et espaces', Component: RoomCatalogTab },
   { id: 'activity-catalog', label: 'Formations', Component: ActivityCatalogTab },
   { id: 'center-information', label: 'Informations et horaires', Component: CenterInformationTab },
+  { id: 'presentations', label: 'Présentation Kim', Component: PresentationsTab },
+  { id: 'suggestions', label: 'Suggestions du chat', Component: SuggestionsTab },
+  { id: 'videos', label: 'Vidéos', Component: VideosTab },
   { id: 'events', label: 'Événements', Component: EventsTab },
   { id: 'news', label: 'Actualités', Component: NewsTab },
   { id: 'site-images', label: 'Images du site', Component: SiteImagesTab },

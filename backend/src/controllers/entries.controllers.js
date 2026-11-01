@@ -1,5 +1,5 @@
 import { wrapAsyncRoute } from '../utils/async-route-handler.js';
-import { eventsService, newsService } from '../services/entries.service.js';
+import { eventsService, newsService, videosService, suggestionsService } from '../services/entries.service.js';
 
 const createController = (service) => ({
   listPublished: wrapAsyncRoute(async (_request, response) => { response.json({ data: await service.listPublished() }); }),
@@ -11,3 +11,5 @@ const createController = (service) => ({
 
 export const events = createController(eventsService);
 export const news = createController(newsService);
+export const videos = createController(videosService);
+export const suggestions = createController(suggestionsService);

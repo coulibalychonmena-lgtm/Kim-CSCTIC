@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import LanguageSelector from './LanguageSelector.jsx';
 import InstallButton from './InstallButton.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 export default function Header() {
   const { translate } = useLanguage();
   const { isAuthenticated, isAdministrator, logout } = useAuth();
+  const isLanding = useLocation().pathname === '/';
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -28,7 +29,7 @@ export default function Header() {
           <NavLink to="/chat" className="site-nav__link">{translate('nav_chat')}</NavLink>
           {isAuthenticated
             ? <NavLink to={isAdministrator ? '/admin/dashboard' : '/mon-espace'} className="site-nav__link">{translate(isAdministrator ? 'nav_admin' : 'nav_account')}</NavLink>
-            : <NavLink to="/connexion" className="site-nav__link">{translate('nav_login')}</NavLink>}
+            : !isLanding && <NavLink to="/connexion" className="site-nav__link">{translate('nav_login')}</NavLink>}
           {isAuthenticated && <button type="button" className="site-nav__link site-nav__button" onClick={logout}>{translate('nav_logout')}</button>}
           <InstallButton />
           <LanguageSelector />

@@ -6,7 +6,7 @@ const FIELDS = [
   { name: 'starts_at', label: 'Début (heure d\'Abidjan)', type: 'datetime', required: true },
   { name: 'ends_at', label: 'Fin (facultatif)', type: 'datetime' },
   { name: 'location', label: 'Lieu', type: 'text' },
-  { name: 'description', label: 'Description', type: 'textarea' },
+  { name: 'description', label: 'Description', type: 'textarea', assist: { imageField: 'image_url', kind: 'event' } },
   { name: 'image_url', label: "Image de l'événement", type: 'image' },
   { name: 'is_published', label: 'Publié sur le site, dans « Mon espace » et connu de Kim', type: 'checkbox' },
 ];

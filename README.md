@@ -53,6 +53,10 @@ Connectez-vous sur `/connexion` (même page pour tous : l'e-mail et le mot de pa
 |---|---|
 | **Salles et espaces** | ajouter, modifier, supprimer une salle ; photo, capacité, équipements, tarif, statut « Disponible / En maintenance » |
 | **Formations** | ajouter, modifier, supprimer une formation ; photo, conditions d'inscription (niveau, adhésion), catégorie, tranche d'âge, nombre de places, horaires, description |
+| **Description automatique** | partout où l'on ajoute une image ou une vidéo (salles, formations, événements, actualités, vidéos, diapositives), Kim analyse l'image (ou la miniature YouTube, ou le titre) et écrit une description dans le champ dès que l'image est ajoutée ; l'administration la modifie puis enregistre. Bouton « Proposer une description avec Kim » pour la refaire. Seules les images du Cloudinary du Centre et les miniatures YouTube sont analysées |
+| **Présentation Kim** | voir le texte que Kim rédige pour chaque salle et formation (diaporama d'images avec boutons réserver / s'inscrire / contacter), le **corriger** ou y ajouter un **complément**, choisir le bouton d'action, l'ordre, masquer, ajouter des diapositives personnalisées ; les corrections sont reprises telles quelles par Kim |
+| **Suggestions du chat** | boutons proposés à l'ouverture du chat (poser une question, présenter les services, montrer les vidéos, ouvrir un formulaire, contacter un agent), en français, anglais et coréen |
+| **Vidéos** | vidéos de présentation ou de récap (lien YouTube, Vimeo ou fichier vidéo) affichées sur l'accueil et montrées par Kim sur demande |
 | **Événements** / **Actualités** | ajouter, modifier, masquer (brouillon) ou supprimer ; image, date, lieu ; affichés sur l'accueil et dans « Mon espace », connus de Kim ; un événement terminé disparaît tout seul |
 | **Images du site** | remplacer, pour chacune des 3 sections de la page d'accueil (bandeau d'accueil, « Faire une demande », « Parler à Kim »), l'image d'arrière-plan ; « Rétablir l'image par défaut » restaure celle fournie dans `frontend/public/backgrounds/` |
 | **Informations et horaires** | contacts, adresse, réseaux sociaux, missions, vision… avec leur source officielle ; horaires d'ouverture jour par jour |
@@ -63,10 +67,10 @@ Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ v
 
 ## 4. Déploiement (GitHub + Render)
 1. Poussez ce dossier sur GitHub (branche `main`).
-2. Render → **New → Blueprint** : `render.yaml` crée `kim-api` (service web) et `kim-web` (**site statique**, jamais endormi). La règle `/* → /index.html` est déclarée dans `render.yaml` : rien à ajouter dans « Redirects/Rewrites ». Un `404.html` de repli est aussi généré au build.
+2. Site statique créé à la main : *Root Directory* `frontend`, *Build Command* `npm install && npm run build`, *Publish Directory* `dist` (l'outil de build est une dépendance normale : Render n'installe pas les devDependencies). Ou Render → **New → Blueprint** : `render.yaml` crée `kim-api` (service web) et `kim-web` (**site statique**, jamais endormi). La règle `/* → /index.html` est déclarée dans `render.yaml` : rien à ajouter dans « Redirects/Rewrites ». Un `404.html` de repli est aussi généré au build.
 3. Renseignez `kim-api` : `DATABASE_URL`, `GEMINI_API_KEY`, `CLOUDINARY_*`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `FRONTEND_URL` (URL de `kim-web`, avec ou sans slash final), puis `kim-web` : `VITE_API_URL` (URL de l'API + `/api/v1`).
 4. Exécutez `npm run migrate` (dossier `backend`, même `DATABASE_URL`). Chaque migration n'est jouée qu'une fois ; les données de départ (004, 007) ne sont jamais rejouées : ce que vous modifiez ou supprimez dans l'admin n'est jamais recréé.
-5. L'API gratuite s'endort après 15 min d'inactivité : le site la réveille dès l'ouverture et n'affiche Kim que lorsqu'elle répond (`/api/v1/health`). Pour l'éviter, faites pinger cette adresse toutes les 10 min (UptimeRobot, gratuit).
+5. L'API gratuite s'endort après 15 min d'inactivité : le site la réveille en silence dès l'ouverture. Le chat affiche déjà l'accueil de Kim avec « Kim se charge… Veuillez patienter un instant, s'il vous plaît. » et débloque la saisie dès que l'API répond (`/api/v1/health`). Pour l'éviter, faites pinger cette adresse toutes les 10 min (UptimeRobot, gratuit).
 6. PWA : le site s'installe sur mobile et ordinateur (bouton « Installer l'application » dans l'en-tête).
 
 **Si la connexion échoue après un changement d'adresse du frontend** : `FRONTEND_URL` de `kim-api` ne contient pas la nouvelle adresse (l'API journalise `[CORS] origine refusée`).
@@ -81,7 +85,9 @@ Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ v
 | POST | `/chat/message` | public |
 | POST | `/auth/register` · `/auth/login` | public |
 | GET | `/auth/me` · `/me/requests` | compte connecté |
-| GET | `/rooms/:id/availability?date=` · `/events` · `/news` | public |
+| GET | `/rooms/:id/availability?date=` · `/events` · `/news` · `/videos` · `/chat-suggestions` · `/presentation?lang=` | public |
+| POST | `/admin/describe-media` | admin |
+| GET/POST/PATCH/DELETE | `/admin/presentations` (+ `POST /:id/regenerate`) · `/admin/videos` · `/admin/chat-suggestions` | admin |
 | GET/POST/PATCH/DELETE | `/admin/events` · `/admin/news` | admin |
 | GET | `/rooms` · `/activities` · `/opening-hours` · `/center-information` · `/site-backgrounds` | public |
 | POST | `/rooms/request` · `/activities/register` · `/partnerships` | public |

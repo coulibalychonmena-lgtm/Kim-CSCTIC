@@ -145,3 +145,48 @@ const newsFields = (isCreation) => ({
 });
 export const newsCreationSchema = newsFields(true);
 export const newsModificationSchema = newsFields(false);
+
+const SLIDE_ACTIONS = ['reserve', 'register', 'contact', 'partner', 'link', 'none'];
+const slideFields = (isCreation) => ({
+  title: { type: 'string', required: isCreation, max: 200 },
+  image_url: { type: 'url', max: 500, nullable: true },
+  admin_text: { type: 'string', required: isCreation, max: 2000, nullable: true },
+  additive: { type: 'string', max: 1000, nullable: true },
+  action_type: { type: 'string', max: 20, oneOf: SLIDE_ACTIONS },
+  action_label: { type: 'string', max: 80, nullable: true },
+  action_url: { type: 'url', max: 500, nullable: true },
+  sort_order: { type: 'int', min: 0, max: 100000 },
+  is_published: { type: 'boolean' },
+});
+export const slideCreationSchema = slideFields(true);
+export const slideModificationSchema = slideFields(false);
+
+const videoFields = (isCreation) => ({
+  title: { type: 'string', required: isCreation, max: 200 },
+  description: { type: 'string', max: 2000, nullable: true },
+  video_url: { type: 'url', required: isCreation, max: 500 },
+  sort_order: { type: 'int', min: 0, max: 100000 },
+  is_published: { type: 'boolean' },
+});
+export const videoCreationSchema = videoFields(true);
+export const videoModificationSchema = videoFields(false);
+
+const SUGGESTION_ACTIONS = ['message', 'presentation', 'videos', 'form_room', 'form_register', 'form_partner', 'agent'];
+const suggestionFields = (isCreation) => ({
+  label: { type: 'string', required: isCreation, max: 120 },
+  label_en: { type: 'string', max: 120, nullable: true },
+  label_ko: { type: 'string', max: 120, nullable: true },
+  message: { type: 'string', max: 500, nullable: true },
+  action_type: { type: 'string', max: 20, required: isCreation, oneOf: SUGGESTION_ACTIONS },
+  sort_order: { type: 'int', min: 0, max: 100000 },
+  is_published: { type: 'boolean' },
+});
+export const suggestionCreationSchema = suggestionFields(true);
+export const suggestionModificationSchema = suggestionFields(false);
+
+export const mediaDescriptionSchema = {
+  image_url: { type: 'url', max: 500, nullable: true },
+  video_url: { type: 'url', max: 500, nullable: true },
+  title: { type: 'string', max: 200, nullable: true },
+  kind: { type: 'string', max: 20, oneOf: ['room', 'activity', 'event', 'news', 'video', 'slide'] },
+};

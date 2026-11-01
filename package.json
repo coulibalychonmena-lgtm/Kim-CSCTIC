@@ -1,0 +1,12 @@
+{
+  "name": "kim-cscticao",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kim \u2014 assistant du CSCTICAO (racine : commandes pratiques)",
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "migrate": "npm --prefix backend install && npm --prefix backend run migrate",
+    "dev:api": "npm --prefix backend run dev",
+    "dev:web": "npm --prefix frontend run dev"
+  }
+}

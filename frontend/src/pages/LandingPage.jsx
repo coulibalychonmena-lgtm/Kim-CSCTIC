@@ -4,7 +4,9 @@ import BackgroundSection from '../components/BackgroundSection.jsx';
 import DirectorMessage from '../components/DirectorMessage.jsx';
 import OrangeTitle from '../components/OrangeTitle.jsx';
 import { EventsList, NewsList } from '../components/EntryLists.jsx';
+import { VideoList } from '../components/VideoPlayer.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useSiteBackgrounds } from '../hooks/useSiteBackgrounds.js';
 import { useLoadedData } from '../hooks/useLoadedData.js';
 import { publicService } from '../services/publicService.js';
@@ -17,6 +19,30 @@ const REQUEST_CARDS = [
 const AVAILABLE_ROOM_STATUS = 'Disponible';
 const CONTACT_CATEGORY = 'contact';
 
+/** Appel à créer un compte ou à se connecter (ou à ouvrir Mon espace si déjà connecté). */
+function AccountCta({ headingId }) {
+  const { translate } = useLanguage();
+  const { isAuthenticated, isAdministrator } = useAuth();
+  return (
+    <section className="cta-band" aria-labelledby={headingId}>
+      <div className="cta-band__inner">
+        <h2 id={headingId}>{translate('cta_account_title')}</h2>
+        <p>{translate('cta_account_text')}</p>
+        <div className="cta-row cta-row--center">
+          {isAuthenticated
+            ? <Link to={isAdministrator ? '/admin/dashboard' : '/mon-espace'} className="btn btn--light btn--large">{translate('cta_my_space')}</Link>
+            : (
+              <>
+                <Link to="/connexion?mode=register" className="btn btn--light btn--large">{translate('cta_create_account')}</Link>
+                <Link to="/connexion" className="btn btn--outline-light btn--large">{translate('cta_login')}</Link>
+              </>
+            )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /** Page d'accueil : tout le contenu (espaces, formations, événements, actualités, contacts) vient de l'administration. */
 export default function LandingPage() {
   const { translate } = useLanguage();
@@ -24,6 +50,7 @@ export default function LandingPage() {
   const { data: rooms } = useLoadedData(publicService.listRooms);
   const { data: activities } = useLoadedData(publicService.listActivities);
   const { data: events } = useLoadedData(publicService.listEvents);
+  const { data: videos } = useLoadedData(publicService.listVideos);
   const { data: news } = useLoadedData(publicService.listNews);
   const { data: openingHours } = useLoadedData(publicService.listOpeningHours);
   const { data: centerInformation } = useLoadedData(publicService.listCenterInformation);
@@ -79,6 +106,8 @@ export default function LandingPage() {
           </div>
         </BackgroundSection>
 
+        <AccountCta headingId="account-cta-middle" />
+
         {activities.length > 0 && (
           <section className="page-section" aria-labelledby="activities-title">
             <OrangeTitle id="activities-title">{translate('activities_title')}</OrangeTitle>
@@ -96,6 +125,13 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {videos.length > 0 && (
+          <section className="page-section" aria-labelledby="videos-title">
+            <OrangeTitle id="videos-title">{translate('videos_title')}</OrangeTitle>
+            <VideoList videos={videos} />
           </section>
         )}
 
@@ -136,6 +172,7 @@ export default function LandingPage() {
         </BackgroundSection>
       </main>
       <DirectorMessage />
+      <AccountCta headingId="account-cta-bottom" />
     </>
   );
 }

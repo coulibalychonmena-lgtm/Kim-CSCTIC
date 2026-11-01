@@ -57,3 +57,21 @@ export const newsService = createEntriesService({
   publicFilter: 'PUBLISHED_AT <= NOW()',
   publicOrder: 'PUBLISHED_AT DESC', adminOrder: 'PUBLISHED_AT DESC',
 });
+
+export const videosService = createEntriesService({
+  table: 'PROMO_VIDEOS', label: 'Vidéo',
+  columnByField: {
+    title: 'TITLE', description: 'DESCRIPTION', video_url: 'VIDEO_URL', sort_order: 'SORT_ORDER',
+    is_published: 'IS_PUBLISHED', created_at: 'CREATED_AT',
+  },
+  publicFilter: 'TRUE', publicOrder: 'SORT_ORDER ASC, CREATED_AT DESC', adminOrder: 'SORT_ORDER ASC, CREATED_AT DESC',
+});
+
+export const suggestionsService = createEntriesService({
+  table: 'CHAT_SUGGESTIONS', label: 'Suggestion',
+  columnByField: {
+    label: 'LABEL', label_en: 'LABEL_EN', label_ko: 'LABEL_KO', message: 'MESSAGE',
+    action_type: 'ACTION_TYPE', sort_order: 'SORT_ORDER', is_published: 'IS_PUBLISHED',
+  },
+  publicFilter: 'TRUE', publicOrder: 'SORT_ORDER ASC, LABEL ASC', adminOrder: 'SORT_ORDER ASC, LABEL ASC',
+});

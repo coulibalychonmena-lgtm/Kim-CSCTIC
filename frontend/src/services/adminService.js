@@ -13,7 +13,14 @@ const crudFor = (resource) => ({
 });
 
 export const adminService = {
+  describeMedia: (token, payload) => sendApiRequest('/admin/describe-media', authorized(token, { method: 'POST', body: payload })).then((responseBody) => responseBody.data.description),
   events: crudFor('events'),
+  videos: crudFor('videos'),
+  suggestions: crudFor('chat-suggestions'),
+  presentations: {
+    ...crudFor('presentations'),
+    regenerate: (token, id) => sendApiRequest(`/admin/presentations/${id}/regenerate`, authorized(token, { method: 'POST' })).then(extractData),
+  },
   news: crudFor('news'),
   getStatistics: (token) => sendApiRequest('/admin/stats', authorized(token)).then(extractData),
 

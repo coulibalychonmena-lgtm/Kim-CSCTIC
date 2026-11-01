@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import FormField from '../components/FormField.jsx';
 import { useFormState } from '../components/forms/useFormState.js';
@@ -14,7 +14,8 @@ export default function AccountPage() {
   const { isReady } = useBackendStatus();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mode, setMode] = useState('login');
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState(searchParams.get('mode') === 'register' ? 'register' : 'login');
   const isRegistering = mode === 'register';
   const formState = useFormState(
     { full_name: '', email: '', phone: '', password: '' },
@@ -41,7 +42,7 @@ export default function AccountPage() {
           {isRegistering && <FormField label={translate('f_phone')} type="tel" autoComplete="tel" error={formState.fieldErrors.phone} {...formState.bindField('phone')} />}
           <FormField label={translate(isRegistering ? 'acc_password_new' : 'acc_password')} type="password" required autoComplete={isRegistering ? 'new-password' : 'current-password'} error={formState.fieldErrors.password} {...formState.bindField('password')} />
           {formState.formError && <p className="form-error" role="alert">{formState.formError}</p>}
-          {!isReady && <p className="muted" role="status">{translate('wake_title')}</p>}
+          {!isReady && <p className="muted" role="status">{translate('wake_text')}</p>}
           <button type="submit" className="btn btn--primary btn--block" disabled={formState.submitting}>
             {formState.submitting ? translate('sending') : translate(isRegistering ? 'acc_submit_register' : 'acc_submit_login')}
           </button>

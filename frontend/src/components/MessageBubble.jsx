@@ -1,6 +1,9 @@
 import { useLanguage } from '../context/LanguageContext.jsx';
 import RequestSummaryCard from './RequestSummaryCard.jsx';
 import InlineChatForm from './InlineChatForm.jsx';
+import PresentationCarousel from './PresentationCarousel.jsx';
+import SuggestionChips from './SuggestionChips.jsx';
+import { VideoList } from './VideoPlayer.jsx';
 
 export default function MessageBubble({ message }) {
   const { translate } = useLanguage();
@@ -30,7 +33,10 @@ export default function MessageBubble({ message }) {
             ))}
           </div>
         )}
+        {message.presentation?.length > 0 && <PresentationCarousel slides={message.presentation} />}
+        {message.videos?.length > 0 && <VideoList videos={message.videos} />}
         {message.form && <InlineChatForm message={message} />}
+        {message.showSuggestions && <SuggestionChips exclude={['presentation']} />}
         {message.request && <RequestSummaryCard request={message.request} />}
         {message.sources?.length > 0 && (
           <p className="sources">

@@ -12,6 +12,8 @@ import * as centerInformationController from '../controllers/center-information.
 import * as openingHoursController from '../controllers/opening-hours.controller.js';
 import { receiveImageUpload } from '../middlewares/image-upload.middleware.js';
 import * as imagesController from '../controllers/images.controller.js';
+import * as mediaDescriptionController from '../controllers/media-description.controller.js';
+import * as presentationController from '../controllers/presentation.controller.js';
 import * as entriesControllers from '../controllers/entries.controllers.js';
 import * as siteBackgroundsController from '../controllers/site-backgrounds.controller.js';
 import * as dashboardAndMonitoringController from '../controllers/dashboard-and-monitoring.controller.js';
@@ -41,6 +43,9 @@ router.get('/site-backgrounds', siteBackgroundsController.listSiteBackgrounds);
 router.get('/rooms/:id/availability', limitRequests(60_000, 120), roomsController.getRoomAvailability);
 router.get('/events', entriesControllers.events.listPublished);
 router.get('/news', entriesControllers.news.listPublished);
+router.get('/videos', entriesControllers.videos.listPublished);
+router.get('/chat-suggestions', entriesControllers.suggestions.listPublished);
+router.get('/presentation', limitRequests(60_000, 30), presentationController.listPresentation);
 
 // --- Demandes déposées par les visiteurs (public) ---
 router.post('/rooms/request', limitRequests(60_000, 10), optionalAuthenticate, validateBody(bodySchemas.roomRequestSchema), roomsController.createRoomRequest);
@@ -92,6 +97,24 @@ router.get('/admin/news', adminOnly, entriesControllers.news.listAll);
 router.post('/admin/news', adminOnly, validateBody(bodySchemas.newsCreationSchema), entriesControllers.news.create);
 router.patch('/admin/news/:id', adminOnly, validateBody(bodySchemas.newsModificationSchema), entriesControllers.news.update);
 router.delete('/admin/news/:id', adminOnly, entriesControllers.news.remove);
+
+router.post('/admin/describe-media', adminOnly, limitRequests(60_000, 20), validateBody(bodySchemas.mediaDescriptionSchema), mediaDescriptionController.describeMedia);
+
+router.get('/admin/videos', adminOnly, entriesControllers.videos.listAll);
+router.post('/admin/videos', adminOnly, validateBody(bodySchemas.videoCreationSchema), entriesControllers.videos.create);
+router.patch('/admin/videos/:id', adminOnly, validateBody(bodySchemas.videoModificationSchema), entriesControllers.videos.update);
+router.delete('/admin/videos/:id', adminOnly, entriesControllers.videos.remove);
+
+router.get('/admin/chat-suggestions', adminOnly, entriesControllers.suggestions.listAll);
+router.post('/admin/chat-suggestions', adminOnly, validateBody(bodySchemas.suggestionCreationSchema), entriesControllers.suggestions.create);
+router.patch('/admin/chat-suggestions/:id', adminOnly, validateBody(bodySchemas.suggestionModificationSchema), entriesControllers.suggestions.update);
+router.delete('/admin/chat-suggestions/:id', adminOnly, entriesControllers.suggestions.remove);
+
+router.get('/admin/presentations', adminOnly, presentationController.listSlidesForAdmin);
+router.post('/admin/presentations', adminOnly, validateBody(bodySchemas.slideCreationSchema), presentationController.createSlide);
+router.patch('/admin/presentations/:id', adminOnly, validateBody(bodySchemas.slideModificationSchema), presentationController.updateSlide);
+router.post('/admin/presentations/:id/regenerate', adminOnly, presentationController.regenerateSlide);
+router.delete('/admin/presentations/:id', adminOnly, presentationController.deleteSlide);
 
 router.put('/admin/site-backgrounds/:slot', adminOnly, validateBody(bodySchemas.siteBackgroundSchema), siteBackgroundsController.setSiteBackground);
 

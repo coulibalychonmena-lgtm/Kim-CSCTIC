@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import { listCorrectedPresentations } from './presentation.service.js';
 import { parseJsonValue } from '../utils/json-value-parsing.js';
 import { ROOM_REQUEST_STATUS } from '../utils/domain-values.js';
 
@@ -6,7 +7,7 @@ const DAY_NAMES_FROM_MONDAY = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendr
 
 /** Charge l'état réel de la base (PostgreSQL / Supabase) pour nourrir Kim à chaque message. */
 export async function loadKnowledge() {
-  const [centerInformation, rooms, activities, openingHours, approvedBookings, events, news] = await Promise.all([
+  const [centerInformation, rooms, activities, openingHours, approvedBookings, events, news, videos, correctedPresentations] = await Promise.all([
     query('SELECT TITLE, CONTENT, SOURCE_LABEL, SOURCE_URL FROM CENTER_INFORMATION ORDER BY CATEGORY, TITLE'),
     query('SELECT ID, NAME, SPACE_TYPE, MAX_CAPACITY, EQUIPMENT, DESCRIPTION, PRICING, STATUS, IMAGE_URL FROM ROOMS ORDER BY NAME'),
     query(`SELECT ID, TITLE, CATEGORY, AGE_MIN, AGE_MAX, AGE_RANGE_LABEL, TOTAL_SEATS, ASSIGNED_SEATS, DESCRIPTION, SCHEDULE, ENROLLMENT_CONDITIONS, IMAGE_URL
@@ -23,6 +24,8 @@ export async function loadKnowledge() {
            ORDER BY STARTS_AT LIMIT 20`),
     query(`SELECT TITLE, SUMMARY, TO_CHAR(PUBLISHED_AT AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS PUBLISHED_AT
            FROM NEWS WHERE IS_PUBLISHED = TRUE AND PUBLISHED_AT <= NOW() ORDER BY PUBLISHED_AT DESC LIMIT 10`),
+    query('SELECT TITLE, DESCRIPTION FROM PROMO_VIDEOS WHERE IS_PUBLISHED = TRUE ORDER BY SORT_ORDER LIMIT 20'),
+    listCorrectedPresentations(),
   ]);
   return {
     centerInformation,
@@ -32,6 +35,8 @@ export async function loadKnowledge() {
     approvedBookings,
     events,
     news,
+    videos,
+    correctedPresentations,
   };
 }
 
@@ -103,6 +108,15 @@ export function formatKnowledge(knowledge) {
   lines.push('\n## ACTUALITÉS RÉCENTES');
   if (!knowledge.news.length) lines.push('- aucune actualité publiée');
   for (const item of knowledge.news) lines.push(`- ${item.published_at} : ${item.title}${item.summary ? ` — ${item.summary}` : ''}`);
+
+  lines.push('\n## VIDÉOS DE PRÉSENTATION DU CENTRE');
+  if (!knowledge.videos.length) lines.push('- aucune vidéo publiée');
+  for (const video of knowledge.videos) lines.push(`- ${video.title}${video.description ? ` — ${video.description}` : ''}`);
+
+  if (knowledge.correctedPresentations.length) {
+    lines.push("\n## PRÉSENTATIONS VALIDÉES PAR L'ADMINISTRATION (elles font foi, reprends-les telles quelles)");
+    for (const presentation of knowledge.correctedPresentations) lines.push(`- ${presentation.title} : ${presentation.text}`);
+  }
 
   return lines.join('\n');
 }

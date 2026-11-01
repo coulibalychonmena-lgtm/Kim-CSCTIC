@@ -4,18 +4,19 @@ import ModalDialog from '../ModalDialog.jsx';
 import FormField from '../FormField.jsx';
 import { useFormState } from '../forms/useFormState.js';
 import ImageUploadField from './ImageUploadField.jsx';
+import AiDescriptionAssistant from './AiDescriptionAssistant.jsx';
 import DeletionConfirmationDialog from './DeletionConfirmationDialog.jsx';
 import { useAutoRefreshingData } from './useAutoRefreshingData.js';
 import { formatDateTime, toDateTimeInputValue } from '../../utils/format.js';
 
-const initialValueOf = (field) => (field.type === 'checkbox' ? true : '');
+const initialValueOf = (field) => (field.type === 'checkbox' ? true : field.type === 'select' && field.options?.length === 0 ? '' : '');
 const toFormValue = (field, entry) => {
   if (field.type === 'datetime') return toDateTimeInputValue(entry[field.name]);
   if (field.type === 'checkbox') return Boolean(entry[field.name]);
   return entry[field.name] ?? '';
 };
 
-function EntryForm({ fields, entry, service, onSaved, onCancel }) {
+export function EntryForm({ fields, entry, service, onSaved, onCancel }) {
   const { token } = useAuth();
   const formState = useFormState(
     Object.fromEntries(fields.map((field) => [field.name, entry ? toFormValue(field, entry) : initialValueOf(field)])),
@@ -33,6 +34,14 @@ function EntryForm({ fields, entry, service, onSaved, onCancel }) {
         if (field.type === 'image') {
           return <ImageUploadField key={field.name} label={field.label} imageUrl={formState.values[field.name]} onChange={(url) => formState.setFieldValue(field.name, url)} />;
         }
+        if (field.type === 'select') {
+          return (
+            <FormField key={field.name} label={field.label} required={field.required} error={error} as="select" {...formState.bindField(field.name)}>
+              <option value="">—</option>
+              {field.options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+            </FormField>
+          );
+        }
         if (field.type === 'checkbox') {
           return (
             <label key={field.name} className="check">
@@ -42,11 +51,21 @@ function EntryForm({ fields, entry, service, onSaved, onCancel }) {
           );
         }
         return (
-          <FormField
-            key={field.name} label={field.label} required={field.required} error={error}
-            as={field.type === 'textarea' ? 'textarea' : 'input'} type={field.type === 'datetime' ? 'datetime-local' : 'text'}
-            {...formState.bindField(field.name)}
-          />
+          <div key={field.name}>
+            <FormField
+              label={field.label} required={field.required} error={error}
+              as={field.type === 'textarea' ? 'textarea' : 'input'} type={field.type === 'datetime' ? 'datetime-local' : field.type === 'number' ? 'number' : 'text'}
+              {...formState.bindField(field.name)}
+            />
+            {field.assist && (
+              <AiDescriptionAssistant
+                kind={field.assist.kind} title={formState.values.title ?? ''}
+                imageUrl={field.assist.imageField ? formState.values[field.assist.imageField] : ''}
+                videoUrl={field.assist.videoField ? formState.values[field.assist.videoField] : ''}
+                value={formState.values[field.name]} onChange={(text) => formState.setFieldValue(field.name, text)}
+              />
+            )}
+          </div>
         );
       })}
       {formState.formError && <p className="form-error" role="alert">{formState.formError}</p>}
@@ -59,7 +78,7 @@ function EntryForm({ fields, entry, service, onSaved, onCancel }) {
 }
 
 /** Gestion complète (ajout, modification, suppression, publication) d'une rubrique éditoriale. */
-export default function EntriesManager({ title, intro, addLabel, emptyLabel, service, fields, dateField }) {
+export default function EntriesManager({ title, intro, addLabel, emptyLabel, service, fields, dateField, titleField = 'title', describe }) {
   const { token } = useAuth();
   const { data: entries, loading, error: loadError, reload } = useAutoRefreshingData(() => service.list(token), [token]);
   const [editedEntry, setEditedEntry] = useState(undefined); // undefined = fermé, null = création, objet = modification
@@ -89,8 +108,8 @@ export default function EntriesManager({ title, intro, addLabel, emptyLabel, ser
         {entries?.map((entry) => (
           <article key={entry.id} className="card">
             {entry.image_url && <img className="table-photo table-photo--wide" src={entry.image_url} alt="" loading="lazy" />}
-            <header className="card__head"><h3>{entry.title}</h3></header>
-            <p className="muted">{formatDateTime(entry[dateField])} · {entry.is_published ? 'Publié' : 'Brouillon (masqué)'}</p>
+            <header className="card__head"><h3>{entry[titleField]}</h3></header>
+            <p className="muted">{describe ? describe(entry) : formatDateTime(entry[dateField])} · {entry.is_published ? 'Publié' : 'Brouillon (masqué)'}</p>
             <div className="actions">
               <button type="button" className="btn btn--small btn--soft" onClick={() => setEditedEntry(entry)}>Modifier</button>
               <button type="button" className="btn btn--small btn--danger" onClick={() => { setEntryToDelete(entry); setDeletionError(''); }}>Supprimer</button>
@@ -105,7 +124,7 @@ export default function EntriesManager({ title, intro, addLabel, emptyLabel, ser
       )}
       {entryToDelete && (
         <DeletionConfirmationDialog
-          title="Supprimer" message={`Supprimer « ${entryToDelete.title} » ? Il disparaît du site et de Kim.`}
+          title="Supprimer" message={`Supprimer « ${entryToDelete[titleField]} » ? Il disparaît du site et de Kim.`}
           busy={deleting} error={deletionError} onConfirm={confirmDeletion} onCancel={() => setEntryToDelete(null)}
         />
       )}

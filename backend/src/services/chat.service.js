@@ -5,6 +5,8 @@ import { buildSystemPrompt } from '../prompts/kim.prompt.js';
 import { loadKnowledge, allowedSources, resolveRequestedImages, resolveRequestedForm } from './knowledge.service.js';
 import { generateKimTurn } from './gemini.service.js';
 import { isTakeoverActive } from './human-takeover.service.js';
+import { listPresentation } from './presentation.service.js';
+import { videosService } from './entries.service.js';
 
 const FALLBACK_REPLY_BY_LANGUAGE = {
   fr: "Je ne parviens pas à répondre pour le moment. Votre question a été transmise à un agent du Centre qui vous répondra.",
@@ -39,7 +41,7 @@ export async function handleMessage({ message, sessionId, language }) {
   if (await isTakeoverActive(sessionId)) {
     await recordExchange({ sessionId, message, reply: null, language: preferredLanguage, sources: [], needsHuman: true });
     return {
-      reply: '', language: preferredLanguage, sources: [], images: [], needs_human: true, human_takeover: true, form: null,
+      reply: '', language: preferredLanguage, sources: [], images: [], needs_human: true, human_takeover: true, form: null, presentation: null, videos: null,
     };
   }
   let reply;
@@ -48,6 +50,8 @@ export async function handleMessage({ message, sessionId, language }) {
   let images = [];
   let needsHuman = false;
   let form = null;
+  let presentation = null;
+  let videos = null;
 
   try {
     const knowledge = await loadKnowledge();
@@ -65,6 +69,9 @@ export async function handleMessage({ message, sessionId, language }) {
     if (!reply) throw new Error('Réponse vide de Gemini');
 
     form = resolveRequestedForm(knowledge, turn.form);
+    // Diaporama et vidéos demandés par Kim : une panne de ces rubriques ne doit pas faire échouer la réponse.
+    if (turn.present_services === true) presentation = await listPresentation(replyLanguage).catch(() => null);
+    if (turn.show_videos === true && knowledge.videos.length) videos = await videosService.listPublished().catch(() => null);
   } catch (error) {
     console.error('[CHAT]', error);
     reply = FALLBACK_REPLY_BY_LANGUAGE[preferredLanguage];
@@ -73,8 +80,10 @@ export async function handleMessage({ message, sessionId, language }) {
     images = [];
     needsHuman = true;
     form = null;
+    presentation = null;
+    videos = null;
   }
 
   await recordExchange({ sessionId, message, reply, language: replyLanguage, sources, needsHuman });
-  return { reply, language: replyLanguage, sources, images, needs_human: needsHuman, human_takeover: false, form };
+  return { reply, language: replyLanguage, sources, images, needs_human: needsHuman, human_takeover: false, form, presentation: presentation?.length ? presentation : null, videos: videos?.length ? videos : null };
 }

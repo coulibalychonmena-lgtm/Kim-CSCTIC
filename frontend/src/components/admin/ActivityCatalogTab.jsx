@@ -5,6 +5,7 @@ import ModalDialog from '../ModalDialog.jsx';
 import FormField from '../FormField.jsx';
 import { useFormState } from '../forms/useFormState.js';
 import ImageUploadField from './ImageUploadField.jsx';
+import AiDescriptionAssistant from './AiDescriptionAssistant.jsx';
 import DeletionConfirmationDialog from './DeletionConfirmationDialog.jsx';
 import { useAutoRefreshingData } from './useAutoRefreshingData.js';
 
@@ -47,6 +48,7 @@ function ActivityEditorForm({ activity, onSaved, onCancel }) {
       <FormField label="Conditions d'inscription (niveau, adhésion, prérequis)" error={formState.fieldErrors.enrollment_conditions} {...formState.bindField('enrollment_conditions')} />
       <FormField as="textarea" label="Description et objectifs" error={formState.fieldErrors.description} {...formState.bindField('description')} />
       <ImageUploadField label="Photo de la formation" imageUrl={formState.values.image_url} onChange={(url) => formState.setFieldValue('image_url', url)} />
+      <AiDescriptionAssistant imageUrl={formState.values.image_url} title={formState.values.title} kind="activity" value={formState.values.description} onChange={(text) => formState.setFieldValue('description', text)} />
       {formState.formError && <p className="form-error" role="alert">{formState.formError}</p>}
       <div className="form-actions">
         <button type="button" className="btn btn--ghost" onClick={onCancel}>Annuler</button>

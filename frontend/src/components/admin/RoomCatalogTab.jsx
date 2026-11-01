@@ -6,6 +6,7 @@ import ModalDialog from '../ModalDialog.jsx';
 import FormField from '../FormField.jsx';
 import { useFormState } from '../forms/useFormState.js';
 import ImageUploadField from './ImageUploadField.jsx';
+import AiDescriptionAssistant from './AiDescriptionAssistant.jsx';
 import DeletionConfirmationDialog from './DeletionConfirmationDialog.jsx';
 import { useAutoRefreshingData } from './useAutoRefreshingData.js';
 
@@ -47,6 +48,7 @@ function RoomEditorForm({ room, onSaved, onCancel }) {
       <FormField as="textarea" label="Description" error={formState.fieldErrors.description} {...formState.bindField('description')} />
       <FormField label="Tarif indicatif ou conditions d'accès" error={formState.fieldErrors.pricing} {...formState.bindField('pricing')} />
       <ImageUploadField label="Photo de la salle" imageUrl={formState.values.image_url} onChange={(url) => formState.setFieldValue('image_url', url)} />
+      <AiDescriptionAssistant imageUrl={formState.values.image_url} title={formState.values.name} kind="room" value={formState.values.description} onChange={(text) => formState.setFieldValue('description', text)} />
       <FormField as="select" label="Statut" error={formState.fieldErrors.status} {...formState.bindField('status')}>
         {ROOM_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
       </FormField>
