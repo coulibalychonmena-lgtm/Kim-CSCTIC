@@ -9,6 +9,8 @@ import HumanAssistanceTab from '../components/admin/HumanAssistanceTab.jsx';
 import RoomCatalogTab from '../components/admin/RoomCatalogTab.jsx';
 import ActivityCatalogTab from '../components/admin/ActivityCatalogTab.jsx';
 import CenterInformationTab from '../components/admin/CenterInformationTab.jsx';
+import EventsTab from '../components/admin/EventsTab.jsx';
+import NewsTab from '../components/admin/NewsTab.jsx';
 import SiteImagesTab from '../components/admin/SiteImagesTab.jsx';
 
 const DASHBOARD_TABS = [
@@ -19,6 +21,8 @@ const DASHBOARD_TABS = [
   { id: 'room-catalog', label: 'Salles et espaces', Component: RoomCatalogTab },
   { id: 'activity-catalog', label: 'Formations', Component: ActivityCatalogTab },
   { id: 'center-information', label: 'Informations et horaires', Component: CenterInformationTab },
+  { id: 'events', label: 'Événements', Component: EventsTab },
+  { id: 'news', label: 'Actualités', Component: NewsTab },
   { id: 'site-images', label: 'Images du site', Component: SiteImagesTab },
 ];
 
@@ -36,6 +40,7 @@ export default function AdminDashboardPage() {
         </div>
         <div className="admin__actions">
           <Link to="/" className="btn btn--ghost">Voir le site</Link>
+          <Link to="/chat" className="btn btn--ghost">Kim</Link>
           <button type="button" className="btn btn--soft" onClick={logout}>Se déconnecter</button>
         </div>
       </header>

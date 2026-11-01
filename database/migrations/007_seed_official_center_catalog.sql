@@ -1,10 +1,10 @@
 -- ============================================================
 -- KIM / CSCTICAO - Migration 007 : catalogue officiel de départ (TDR §2)
--- Uniquement ce que le TDR établit : horaires, missions, vision, 4 types d'espaces,
+-- Uniquement ce que le TDR et le site du Centre établissent : horaires, missions, vision, 6 espaces,
 -- 5 formations et activités. Rien n'est inventé : capacités, places, âges, horaires de
 -- sessions, tarifs et contacts restent à saisir par l'administration depuis /admin.
--- Idempotente : chaque ligne n'est insérée que si elle n'existe pas déjà ;
--- les horaires ne sont insérés que si la table est vide.
+-- Exécutée UNE SEULE FOIS (suivi par `npm run migrate`) : ce qui est ensuite modifié ou supprimé
+-- depuis /admin n'est jamais recréé ni écrasé.
 -- ============================================================
 
 INSERT INTO OPENING_HOURS (DAY_OF_WEEK, OPEN_TIME, CLOSE_TIME)
@@ -30,26 +30,17 @@ SELECT 'institution', 'Vision du Centre',
   'Site officiel du CSCTICAO', 'https://cscticao.ci'
 WHERE NOT EXISTS (SELECT 1 FROM CENTER_INFORMATION WHERE TITLE = 'Vision du Centre');
 
-INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, DESCRIPTION, STATUS)
-SELECT $$Palais des Sports / Gymnase principal$$, $$Sport et grands événements$$, '[]'::jsonb,
-  $$Capacité pour grands événements sportifs, cérémonies, compétitions de Taekwondo et galas.$$, 'Disponible'
-WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER($$Palais des Sports / Gymnase principal$$));
-
-INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, DESCRIPTION, STATUS)
-SELECT $$Salle de Conférence principale$$, $$Conférence$$, '["sonorisation", "vidéoprojecteur", "fauteuils"]'::jsonb,
-  $$Salle équipée pour séminaires et conférences.$$, 'Disponible'
-WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER($$Salle de Conférence principale$$));
-
-INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, DESCRIPTION, STATUS)
-SELECT $$Salles de Formation TIC / Salles Informatiques$$, $$Formation TIC$$,
-  '["postes ordinateurs", "connexion Internet haut débit", "écrans de présentation"]'::jsonb,
-  $$Salles informatiques pour les formations aux technologies de l'information et de la communication.$$, 'Disponible'
-WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER($$Salles de Formation TIC / Salles Informatiques$$));
-
-INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, DESCRIPTION, STATUS)
-SELECT $$Salles Polyvalentes et Salles de Réunion$$, $$Polyvalente et réunion$$, '[]'::jsonb,
-  $$Adaptées aux ateliers, réunions de travail ou petits événements associatifs.$$, 'Disponible'
-WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER($$Salles Polyvalentes et Salles de Réunion$$));
+INSERT INTO ROOMS (NAME, SPACE_TYPE, EQUIPMENT, STATUS)
+SELECT seed.NAME, seed.SPACE_TYPE, '[]'::jsonb, 'Disponible'
+FROM (VALUES
+  ($$Le Gymnase$$, $$Sport et événements$$),
+  ($$La salle polyvalente$$, $$Polyvalente$$),
+  ($$La salle multimédia$$, $$Multimédia$$),
+  ($$La bibliothèque$$, $$Bibliothèque$$),
+  ($$L'espace parking$$, $$Espace extérieur$$),
+  ($$Salle de classe$$, $$Salle de classe$$)
+) AS seed(NAME, SPACE_TYPE)
+WHERE NOT EXISTS (SELECT 1 FROM ROOMS WHERE LOWER(NAME) = LOWER(seed.NAME));
 
 INSERT INTO ACTIVITIES (TITLE, CATEGORY, AGE_RANGE_LABEL, DESCRIPTION)
 SELECT $$Taekwondo (Initiation et Perfectionnement)$$, 'Sport', $$Enfants, adolescents et adultes$$,

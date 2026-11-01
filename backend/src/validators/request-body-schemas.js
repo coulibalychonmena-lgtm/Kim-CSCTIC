@@ -115,3 +115,33 @@ export const openingDaySchema = {
 export const siteBackgroundSchema = {
   image_url: { type: 'url', max: 500, nullable: true },
 };
+
+export const registerSchema = {
+  full_name: { type: 'string', required: true, max: 150 },
+  email: { type: 'email', required: true },
+  phone: { type: 'phone' },
+  password: { type: 'string', required: true, max: 200 },
+};
+
+const eventFields = (isCreation) => ({
+  title: { type: 'string', required: isCreation, max: 200 },
+  description: { type: 'string', max: 4000, nullable: true },
+  location: { type: 'string', max: 200, nullable: true },
+  starts_at: { type: 'datetime', required: isCreation },
+  ends_at: { type: 'datetime', nullable: true },
+  image_url: { type: 'url', max: 500, nullable: true },
+  is_published: { type: 'boolean' },
+});
+export const eventCreationSchema = eventFields(true);
+export const eventModificationSchema = eventFields(false);
+
+const newsFields = (isCreation) => ({
+  title: { type: 'string', required: isCreation, max: 200 },
+  summary: { type: 'string', max: 500, nullable: true },
+  content: { type: 'string', required: isCreation, max: 8000 },
+  image_url: { type: 'url', max: 500, nullable: true },
+  published_at: { type: 'datetime' },
+  is_published: { type: 'boolean' },
+});
+export const newsCreationSchema = newsFields(true);
+export const newsModificationSchema = newsFields(false);

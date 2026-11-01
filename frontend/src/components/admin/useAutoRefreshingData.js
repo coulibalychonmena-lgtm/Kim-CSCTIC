@@ -4,7 +4,7 @@ const REFRESH_INTERVAL_MILLISECONDS = 15000;
 
 /** Charge des données admin et les rafraîchit automatiquement (les nouvelles demandes apparaissent seules). */
 export function useAutoRefreshingData(loadData, dependencies = [], intervalMilliseconds = REFRESH_INTERVAL_MILLISECONDS) {
-  const [state, setState] = useState({ data: null, loading: true, error: '' });
+  const [state, setState] = useState({ data: null, loading: true, error: '', updatedAt: null });
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableLoadData = useCallback(loadData, dependencies);
@@ -12,7 +12,7 @@ export function useAutoRefreshingData(loadData, dependencies = [], intervalMilli
   const reload = useCallback(async () => {
     try {
       const data = await stableLoadData();
-      setState({ data, loading: false, error: '' });
+      setState({ data, loading: false, error: '', updatedAt: Date.now() });
     } catch (error) {
       setState((previousState) => ({ ...previousState, loading: false, error: error.message }));
     }
@@ -20,7 +20,7 @@ export function useAutoRefreshingData(loadData, dependencies = [], intervalMilli
 
   useEffect(() => {
     reload();
-    const refreshTimer = setInterval(reload, intervalMilliseconds);
+    const refreshTimer = setInterval(() => { if (!document.hidden) reload(); }, intervalMilliseconds);
     return () => clearInterval(refreshTimer);
   }, [reload, intervalMilliseconds]);
 

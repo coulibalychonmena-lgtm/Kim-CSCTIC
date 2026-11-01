@@ -2,18 +2,32 @@ import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import BackgroundSection from '../components/BackgroundSection.jsx';
 import DirectorMessage from '../components/DirectorMessage.jsx';
+import OrangeTitle from '../components/OrangeTitle.jsx';
+import { EventsList, NewsList } from '../components/EntryLists.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useSiteBackgrounds } from '../hooks/useSiteBackgrounds.js';
+import { useLoadedData } from '../hooks/useLoadedData.js';
+import { publicService } from '../services/publicService.js';
 
 const REQUEST_CARDS = [
   { form: 'room', titleKey: 'card_room_title', textKey: 'card_room_text' },
   { form: 'register', titleKey: 'card_register_title', textKey: 'card_register_text' },
   { form: 'partner', titleKey: 'card_partner_title', textKey: 'card_partner_text' },
 ];
+const AVAILABLE_ROOM_STATUS = 'Disponible';
+const CONTACT_CATEGORY = 'contact';
 
+/** Page d'accueil : tout le contenu (espaces, formations, événements, actualités, contacts) vient de l'administration. */
 export default function LandingPage() {
   const { translate } = useLanguage();
   const backgroundFor = useSiteBackgrounds();
+  const { data: rooms } = useLoadedData(publicService.listRooms);
+  const { data: activities } = useLoadedData(publicService.listActivities);
+  const { data: events } = useLoadedData(publicService.listEvents);
+  const { data: news } = useLoadedData(publicService.listNews);
+  const { data: openingHours } = useLoadedData(publicService.listOpeningHours);
+  const { data: centerInformation } = useLoadedData(publicService.listCenterInformation);
+  const contacts = centerInformation.filter((entry) => entry.category === CONTACT_CATEGORY);
 
   return (
     <>
@@ -29,6 +43,28 @@ export default function LandingPage() {
           </div>
         </BackgroundSection>
 
+        {rooms.length > 0 && (
+          <section className="page-section" aria-labelledby="rooms-title">
+            <OrangeTitle id="rooms-title">{translate('rooms_title')}</OrangeTitle>
+            <p className="page-section__lead">{translate('rooms_text')}</p>
+            <ul className="space-grid">
+              {rooms.map((room) => (
+                <li key={room.id} className="space-card">
+                  {room.image_url ? <img src={room.image_url} alt={room.name} loading="lazy" /> : <div className="space-card__noimage" aria-hidden="true" />}
+                  <div className="space-card__body">
+                    <OrangeTitle as="h3">{room.name}</OrangeTitle>
+                    <p className="muted">{room.space_type}{room.max_capacity ? ` · ${translate('capacity')} ${room.max_capacity} ${translate('persons')}` : ''}</p>
+                    {room.description && <p>{room.description}</p>}
+                    {room.status === AVAILABLE_ROOM_STATUS && (
+                      <Link to={`/chat?form=room&room=${encodeURIComponent(room.id)}`} className="btn btn--primary btn--small">{translate('room_cta')}</Link>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <BackgroundSection imageUrl={backgroundFor('services')} aria-labelledby="services-title">
           <h2 id="services-title" className="bg-section__title">{translate('services_title')}</h2>
           <p className="bg-section__lead">{translate('services_text')}</p>
@@ -43,11 +79,59 @@ export default function LandingPage() {
           </div>
         </BackgroundSection>
 
-        <BackgroundSection imageUrl={backgroundFor('evenements')} className="bg-section--center" aria-labelledby="events-title">
-          <h2 id="events-title" className="bg-section__title">{translate('events_title')}</h2>
+        {activities.length > 0 && (
+          <section className="page-section" aria-labelledby="activities-title">
+            <OrangeTitle id="activities-title">{translate('activities_title')}</OrangeTitle>
+            <ul className="entry-grid">
+              {activities.map((activity) => (
+                <li key={activity.id} className="entry-card">
+                  {activity.image_url && <img src={activity.image_url} alt={activity.title} loading="lazy" />}
+                  <div className="entry-card__body">
+                    <p className="entry-card__date">{activity.category}</p>
+                    <h3>{activity.title}</h3>
+                    {activity.schedule && <p className="muted">{activity.schedule}</p>}
+                    {activity.description && <p>{activity.description}</p>}
+                    <Link to={`/chat?form=register&activity=${encodeURIComponent(activity.id)}`} className="btn btn--primary btn--small">{translate('activity_cta')}</Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {events.length > 0 && (
+          <section className="page-section" aria-labelledby="events-section-title">
+            <OrangeTitle id="events-section-title">{translate('events_section_title')}</OrangeTitle>
+            <EventsList events={events} />
+          </section>
+        )}
+
+        {news.length > 0 && (
+          <section className="page-section" aria-labelledby="news-section-title">
+            <OrangeTitle id="news-section-title">{translate('news_section_title')}</OrangeTitle>
+            <NewsList news={news} />
+          </section>
+        )}
+
+        <BackgroundSection imageUrl={backgroundFor('evenements')} aria-labelledby="assist-title">
+          <h2 id="assist-title" className="bg-section__title">{translate('assist_title')}</h2>
           <p className="bg-section__lead">{translate('events_text')}</p>
-          <div className="cta-row cta-row--center">
+          <div className="assist-grid">
+            {contacts.map((contact) => (
+              <div key={contact.title} className="assist-box"><h3>{contact.title}</h3><p>{contact.content}</p></div>
+            ))}
+            {openingHours.length > 0 && (
+              <div className="assist-box">
+                <h3>{translate('assist_hours')}</h3>
+                <ul className="hours">
+                  {openingHours.map((day) => <li key={day.day_of_week}><span>{translate(`day_${day.day_of_week}`)}</span> {String(day.open_time).slice(0, 5)}–{String(day.close_time).slice(0, 5)}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+          <div className="cta-row">
             <Link to="/chat" className="btn btn--primary btn--large">{translate('events_cta')}</Link>
+            <Link to="/chat?agent=1" className="btn btn--light btn--large">{translate('assist_agent')}</Link>
           </div>
         </BackgroundSection>
       </main>

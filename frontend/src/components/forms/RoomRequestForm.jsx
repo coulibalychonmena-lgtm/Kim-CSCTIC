@@ -4,17 +4,41 @@ import FormActions from './FormActions.jsx';
 import { useFormState } from './useFormState.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { publicService } from '../../services/publicService.js';
+import { useAccountPrefill } from './useAccountPrefill.js';
+
+const AVAILABILITY_REFRESH_MILLISECONDS = 15000;
+const REQUIRED_FIELDS = ['requester_lastname', 'requester_firstname', 'email', 'phone', 'room_id', 'requested_date', 'start_time', 'end_time', 'attendees', 'purpose'];
 
 const PENDING_VALIDATION_STATUS = 'En attente de validation humaine';
 const AVAILABLE_ROOM_STATUS = 'Disponible';
 
-export default function RoomRequestForm({ onDone, onCancel }) {
+export default function RoomRequestForm({ onDone, onCancel, prefill = {} }) {
   const { translate } = useLanguage();
+  const { token, contact } = useAccountPrefill();
+  const [availability, setAvailability] = useState(null);
   const [bookableRooms, setBookableRooms] = useState(null);
   const formState = useFormState({
     requester_lastname: '', requester_firstname: '', email: '', phone: '', room_id: '',
     requested_date: '', start_time: '', end_time: '', attendees: '', extra_equipment: '', purpose: '',
-  });
+    ...{ requester_lastname: contact.lastname, requester_firstname: contact.firstname, email: contact.email, phone: contact.phone },
+    ...prefill,
+  }, { required: REQUIRED_FIELDS });
+  const { room_id: selectedRoomId, requested_date: selectedDate, start_time: startTime, end_time: endTime } = formState.values;
+
+  // Créneaux déjà pris : relus régulièrement, car quelqu'un d'autre peut réserver pendant la saisie.
+  useEffect(() => {
+    if (!selectedRoomId || !selectedDate) { setAvailability(null); return undefined; }
+    let isCurrent = true;
+    const loadAvailability = () => publicService.getRoomAvailability(selectedRoomId, selectedDate)
+      .then((slots) => isCurrent && setAvailability(slots)).catch(() => isCurrent && setAvailability(null));
+    loadAvailability();
+    const timer = setInterval(loadAvailability, AVAILABILITY_REFRESH_MILLISECONDS);
+    return () => { isCurrent = false; clearInterval(timer); };
+  }, [selectedRoomId, selectedDate]);
+
+  const conflictingSlot = availability && startTime && endTime
+    ? availability.busy.find((slot) => startTime < slot.end_time && endTime > slot.start_time)
+    : null;
 
   useEffect(() => {
     publicService.listRooms()
@@ -28,7 +52,7 @@ export default function RoomRequestForm({ onDone, onCancel }) {
       attendees: Number(values.attendees),
       extra_equipment: values.extra_equipment.split(',').map((item) => item.trim()).filter(Boolean),
     };
-    const created = await publicService.submitRoomRequest(roomRequest);
+    const created = await publicService.submitRoomRequest(roomRequest, token);
     onDone({
       kind: 'room_request', id: created.id, status: PENDING_VALIDATION_STATUS, warnings: created.warnings,
       summary: {
@@ -69,10 +93,19 @@ export default function RoomRequestForm({ onDone, onCancel }) {
         <FormField label={translate('f_start')} type="time" required error={formState.fieldErrors.start_time} {...formState.bindField('start_time')} />
         <FormField label={translate('f_end')} type="time" required error={formState.fieldErrors.end_time} {...formState.bindField('end_time')} />
       </div>
+      {availability && (
+        <p className={`slot-info${conflictingSlot ? ' slot-info--conflict' : ''}`} role="status">
+          {availability.busy.length
+            ? `${translate('slot_busy')} ${availability.busy.map((slot) => `${slot.start_time}–${slot.end_time}`).join(', ')}`
+            : translate('slot_free')}
+          {availability.opening_hours && ` · ${translate('slot_open')} ${availability.opening_hours.open_time}–${availability.opening_hours.close_time}`}
+          {conflictingSlot && <strong> {translate('slot_conflict')}</strong>}
+        </p>
+      )}
       <FormField label={translate('f_attendees')} type="number" min="1" required error={formState.fieldErrors.attendees} {...formState.bindField('attendees')} />
       <FormField label={translate('f_equipment')} error={formState.fieldErrors.extra_equipment} {...formState.bindField('extra_equipment')} />
       <FormField as="textarea" label={translate('f_purpose')} required error={formState.fieldErrors.purpose} {...formState.bindField('purpose')} />
-      <FormActions error={formState.formError} submitting={formState.submitting} onCancel={onCancel} />
+      <FormActions error={formState.formError} submitting={formState.submitting} onCancel={onCancel} disabled={Boolean(conflictingSlot)} />
     </form>
   );
 }

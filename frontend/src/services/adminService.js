@@ -5,8 +5,16 @@ const statusQuery = (status) => (status ? `?status=${encodeURIComponent(status)}
 
 const authorized = (token, options = {}) => ({ ...options, token });
 
+const crudFor = (resource) => ({
+  list: (token) => sendApiRequest(`/admin/${resource}`, authorized(token)).then(extractData),
+  create: (token, data) => sendApiRequest(`/admin/${resource}`, authorized(token, { method: 'POST', body: data })).then(extractData),
+  update: (token, id, changes) => sendApiRequest(`/admin/${resource}/${id}`, authorized(token, { method: 'PATCH', body: changes })).then(extractData),
+  remove: (token, id) => sendApiRequest(`/admin/${resource}/${id}`, authorized(token, { method: 'DELETE' })).then(extractData),
+});
+
 export const adminService = {
-  login: (email, password) => sendApiRequest('/auth/login', { method: 'POST', body: { email, password } }),
+  events: crudFor('events'),
+  news: crudFor('news'),
   getStatistics: (token) => sendApiRequest('/admin/stats', authorized(token)).then(extractData),
 
   // --- Traitement des demandes ---

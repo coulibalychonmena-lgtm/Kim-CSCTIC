@@ -4,15 +4,15 @@ import { generateIdentifier } from '../utils/identifier-generation.js';
 
 const NEW_PARTNERSHIP_STATUS = 'Nouveau';
 
-export async function createPartnership(partnershipData) {
+export async function createPartnership(partnershipData, userId = null) {
   const partnershipId = generateIdentifier();
   await query(
     `INSERT INTO PARTNERSHIP_REQUESTS
-       (ID, ORGANIZATION, CONTACT_NAME, EMAIL, PHONE, PARTNERSHIP_TYPE, DESCRIPTION, STATUS)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (ID, ORGANIZATION, CONTACT_NAME, EMAIL, PHONE, PARTNERSHIP_TYPE, DESCRIPTION, STATUS, USER_ID)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       partnershipId, partnershipData.organization, partnershipData.contact_name, partnershipData.email,
-      partnershipData.phone || null, partnershipData.partnership_type, partnershipData.description, NEW_PARTNERSHIP_STATUS,
+      partnershipData.phone || null, partnershipData.partnership_type, partnershipData.description, NEW_PARTNERSHIP_STATUS, userId,
     ],
   );
   return { id: partnershipId, status: NEW_PARTNERSHIP_STATUS };
@@ -28,6 +28,6 @@ export const listPartnerships = (statusFilter) =>
 export async function updatePartnershipStatus(partnershipId, newStatus) {
   const [existingPartnership] = await query('SELECT ID FROM PARTNERSHIP_REQUESTS WHERE ID = ?', [partnershipId]);
   if (!existingPartnership) throw new AppError(404, 'Proposition introuvable.');
-  await query('UPDATE PARTNERSHIP_REQUESTS SET STATUS = ? WHERE ID = ?', [newStatus, partnershipId]);
+  await query('UPDATE PARTNERSHIP_REQUESTS SET STATUS = ?, UPDATED_AT = NOW() WHERE ID = ?', [newStatus, partnershipId]);
   return { id: partnershipId, status: newStatus };
 }

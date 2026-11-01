@@ -39,4 +39,25 @@ export async function query(sqlText, binds = []) {
 /** Exécute un fichier SQL complet (plusieurs instructions, sans paramètres) en une seule transaction implicite. */
 export const runSqlScript = (sqlScript) => pool.query(sqlScript);
 
+/**
+ * Exécute `work` dans une transaction PostgreSQL (BEGIN/COMMIT, ROLLBACK en cas d'erreur).
+ * `work` reçoit { query } : même syntaxe « ? » et mêmes clés minuscules que query().
+ */
+export async function withTransaction(work) {
+  const client = await pool.connect();
+  const run = async (sqlText, binds = []) =>
+    (await client.query(toPostgresPlaceholders(sqlText), binds)).rows.map(withLowercaseColumnNames);
+  try {
+    await client.query('BEGIN');
+    const result = await work({ query: run });
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export const closeDatabase = () => pool.end();

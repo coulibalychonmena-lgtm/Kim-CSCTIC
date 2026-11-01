@@ -1,4 +1,4 @@
-import { query } from '../config/database.js';
+import { query, withTransaction } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
 import { parseJsonValue } from '../utils/json-value-parsing.js';
@@ -106,50 +106,93 @@ async function buildOpeningHoursWarnings(requestedDate, startTime, endTime) {
   return [];
 }
 
-async function hasApprovedOverlap(roomId, requestedDate, startTime, endTime, requestIdToIgnore = null) {
-  const [{ overlap_count: overlapCount }] = await query(
-    `SELECT COUNT(*) AS OVERLAP_COUNT FROM ROOM_REQUESTS
-     WHERE ROOM_ID = ? AND REQUESTED_DATE = ?::date AND STATUS = ?
-       AND START_TIME < ?::time AND END_TIME > ?::time
-       AND (?::text IS NULL OR ID <> ?)`,
-    [roomId, requestedDate, ROOM_REQUEST_STATUS.APPROVED, endTime, startTime, requestIdToIgnore, requestIdToIgnore],
+/** Une demande en attente ou validée occupe le créneau ; seule une demande refusée le libère. */
+const SLOT_HOLDING_STATUSES = [ROOM_REQUEST_STATUS.PENDING, ROOM_REQUEST_STATUS.APPROVED];
+
+/** Pose un verrou (jusqu'à la fin de la transaction) : les demandes simultanées sur la même salle et le même jour passent l'une après l'autre. */
+const lockRoomDay = (database, roomId, requestedDate) =>
+  database.query('SELECT pg_advisory_xact_lock(hashtextextended(?::text, 0))', [`room:${roomId}:${requestedDate}`]);
+
+async function findSlotConflicts(database, roomId, requestedDate, startTime, endTime, requestIdToIgnore = null) {
+  return database.query(
+    `SELECT TO_CHAR(START_TIME, 'HH24:MI') AS START_TIME, TO_CHAR(END_TIME, 'HH24:MI') AS END_TIME
+     FROM ROOM_REQUESTS
+     WHERE ROOM_ID = ? AND REQUESTED_DATE = ?::date AND STATUS = ANY(?::text[])
+       AND START_TIME < ?::time AND END_TIME > ?::time AND (?::text IS NULL OR ID <> ?)
+     ORDER BY START_TIME`,
+    [roomId, requestedDate, SLOT_HOLDING_STATUSES, endTime, startTime, requestIdToIgnore, requestIdToIgnore],
   );
-  return Number(overlapCount) > 0;
 }
 
-export async function createRoomRequest(requestData) {
-  const [room] = await query('SELECT ID, NAME, MAX_CAPACITY, STATUS FROM ROOMS WHERE ID = ?', [requestData.room_id]);
-  if (!room) throw new AppError(404, 'Salle introuvable.');
-  if (room.status !== ROOM_AVAILABILITY_STATUSES.AVAILABLE) {
-    throw new AppError(409, `La salle « ${room.name} » est actuellement en maintenance.`);
+const describeConflicts = (conflicts) => conflicts.map((slot) => `${slot.start_time}–${slot.end_time}`).join(', ');
+
+/** Créneaux déjà pris pour une salle un jour donné (sans aucune donnée personnelle) + horaires d'ouverture. */
+export async function getRoomAvailability(roomId, requestedDate) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(requestedDate)) || Number.isNaN(Date.parse(requestedDate))) {
+    throw new AppError(400, 'Date invalide (AAAA-MM-JJ).');
   }
+  const [room] = await query('SELECT ID FROM ROOMS WHERE ID = ?', [roomId]);
+  if (!room) throw new AppError(404, 'Salle introuvable.');
+  const busySlots = await query(
+    `SELECT TO_CHAR(START_TIME, 'HH24:MI') AS START_TIME, TO_CHAR(END_TIME, 'HH24:MI') AS END_TIME, STATUS
+     FROM ROOM_REQUESTS WHERE ROOM_ID = ? AND REQUESTED_DATE = ?::date AND STATUS = ANY(?::text[]) ORDER BY START_TIME`,
+    [roomId, requestedDate, SLOT_HOLDING_STATUSES],
+  );
+  const dayOfWeek = new Date(`${requestedDate}T00:00:00Z`).getUTCDay() || 7;
+  const [openingHours] = await query(
+    `SELECT TO_CHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_CHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME FROM OPENING_HOURS WHERE DAY_OF_WEEK = ?`,
+    [dayOfWeek],
+  );
+  return {
+    date: requestedDate,
+    busy: busySlots.map((slot) => ({ start_time: slot.start_time, end_time: slot.end_time, validated: slot.status === ROOM_REQUEST_STATUS.APPROVED })),
+    opening_hours: openingHours || null,
+  };
+}
+
+export async function createRoomRequest(requestData, userId = null) {
+  const [roomPreview] = await query('SELECT ID FROM ROOMS WHERE ID = ?', [requestData.room_id]);
+  if (!roomPreview) throw new AppError(404, 'Salle introuvable.');
   if (requestData.end_time <= requestData.start_time) {
-    throw new AppError(400, "L'heure de fin doit être postérieure à l'heure de début.");
+    throw new AppError(400, "L'heure de fin doit être postérieure à l'heure de début.", { end_time: "L'heure de fin doit suivre l'heure de début." });
   }
   if (requestData.requested_date < new Date().toISOString().slice(0, 10)) {
-    throw new AppError(400, 'La date souhaitée est déjà passée.');
-  }
-  if (room.max_capacity && requestData.attendees > room.max_capacity) {
-    throw new AppError(422, `La capacité maximale de « ${room.name} » est de ${room.max_capacity} personnes.`);
-  }
-  if (await hasApprovedOverlap(requestData.room_id, requestData.requested_date, requestData.start_time, requestData.end_time)) {
-    throw new AppError(409, `« ${room.name} » est déjà réservée sur ce créneau.`);
+    throw new AppError(400, 'La date souhaitée est déjà passée.', { requested_date: 'Date déjà passée.' });
   }
   const warnings = await buildOpeningHoursWarnings(requestData.requested_date, requestData.start_time, requestData.end_time);
 
-  const requestId = generateIdentifier();
-  await query(
-    `INSERT INTO ROOM_REQUESTS
-       (ID, REQUESTER_LASTNAME, REQUESTER_FIRSTNAME, EMAIL, PHONE, ROOM_ID, REQUESTED_DATE,
-        START_TIME, END_TIME, ATTENDEES, EXTRA_EQUIPMENT, PURPOSE, STATUS)
-     VALUES (?, ?, ?, ?, ?, ?, ?::date, ?::time, ?::time, ?, ?::jsonb, ?, ?)`,
-    [
-      requestId, requestData.requester_lastname, requestData.requester_firstname, requestData.email, requestData.phone,
-      requestData.room_id, requestData.requested_date, requestData.start_time, requestData.end_time, requestData.attendees,
-      JSON.stringify(requestData.extra_equipment || []), requestData.purpose, ROOM_REQUEST_STATUS.PENDING,
-    ],
-  );
-  return { id: requestId, status: ROOM_REQUEST_STATUS.PENDING, room_name: room.name, warnings };
+  return withTransaction(async (database) => {
+    await lockRoomDay(database, requestData.room_id, requestData.requested_date);
+    const [room] = await database.query('SELECT ID, NAME, MAX_CAPACITY, STATUS FROM ROOMS WHERE ID = ?', [requestData.room_id]);
+    if (!room) throw new AppError(404, 'Salle introuvable.');
+    if (room.status !== ROOM_AVAILABILITY_STATUSES.AVAILABLE) {
+      throw new AppError(409, `La salle « ${room.name} » est actuellement en maintenance.`);
+    }
+    if (room.max_capacity && requestData.attendees > room.max_capacity) {
+      throw new AppError(422, `La capacité maximale de « ${room.name} » est de ${room.max_capacity} personnes.`, { attendees: `Maximum ${room.max_capacity} personnes.` });
+    }
+    const conflicts = await findSlotConflicts(database, requestData.room_id, requestData.requested_date, requestData.start_time, requestData.end_time);
+    if (conflicts.length) {
+      throw new AppError(
+        409,
+        `« ${room.name} » est déjà demandée ou réservée sur ce créneau (${describeConflicts(conflicts)}). Choisissez un autre horaire.`,
+        { start_time: `Créneau déjà pris : ${describeConflicts(conflicts)}.` },
+      );
+    }
+    const requestId = generateIdentifier();
+    await database.query(
+      `INSERT INTO ROOM_REQUESTS
+         (ID, REQUESTER_LASTNAME, REQUESTER_FIRSTNAME, EMAIL, PHONE, ROOM_ID, REQUESTED_DATE,
+          START_TIME, END_TIME, ATTENDEES, EXTRA_EQUIPMENT, PURPOSE, STATUS, USER_ID)
+       VALUES (?, ?, ?, ?, ?, ?, ?::date, ?::time, ?::time, ?, ?::jsonb, ?, ?, ?)`,
+      [
+        requestId, requestData.requester_lastname, requestData.requester_firstname, requestData.email, requestData.phone,
+        requestData.room_id, requestData.requested_date, requestData.start_time, requestData.end_time, requestData.attendees,
+        JSON.stringify(requestData.extra_equipment || []), requestData.purpose, ROOM_REQUEST_STATUS.PENDING, userId,
+      ],
+    );
+    return { id: requestId, status: ROOM_REQUEST_STATUS.PENDING, room_name: room.name, warnings };
+  });
 }
 
 export async function listRoomRequests(statusFilter) {
@@ -181,15 +224,20 @@ export async function updateRoomRequestStatus(requestId, { status, admin_comment
   if (status === ROOM_REQUEST_STATUS.REFUSED && !adminComment) {
     throw new AppError(400, 'Un motif est obligatoire pour refuser une demande.');
   }
-  if (
-    status === ROOM_REQUEST_STATUS.APPROVED
-    && await hasApprovedOverlap(
-      existingRequest.room_id, existingRequest.requested_date,
-      existingRequest.start_time, existingRequest.end_time, requestId,
-    )
-  ) {
-    throw new AppError(409, 'Une autre réservation validée occupe déjà ce créneau.');
-  }
-  await query('UPDATE ROOM_REQUESTS SET STATUS = ?, ADMIN_COMMENT = ? WHERE ID = ?', [status, adminComment || null, requestId]);
-  return { id: requestId, status, admin_comment: adminComment || null };
+  return withTransaction(async (database) => {
+    await lockRoomDay(database, existingRequest.room_id, existingRequest.requested_date);
+    // Rouvrir une demande refusée reprend le créneau : il doit encore être libre.
+    if (status !== ROOM_REQUEST_STATUS.REFUSED) {
+      const conflicts = await findSlotConflicts(
+        database, existingRequest.room_id, existingRequest.requested_date,
+        existingRequest.start_time, existingRequest.end_time, requestId,
+      );
+      if (conflicts.length) throw new AppError(409, `Une autre demande occupe déjà ce créneau (${describeConflicts(conflicts)}).`);
+    }
+    await database.query(
+      'UPDATE ROOM_REQUESTS SET STATUS = ?, ADMIN_COMMENT = ?, UPDATED_AT = NOW() WHERE ID = ?',
+      [status, adminComment || null, requestId],
+    );
+    return { id: requestId, status, admin_comment: adminComment || null };
+  });
 }

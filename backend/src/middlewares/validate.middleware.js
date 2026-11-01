@@ -33,6 +33,12 @@ export function validateAgainstSchema(schema, data = {}) {
         if (typeof value !== 'string' || !DATE_PATTERN.test(value) || Number.isNaN(Date.parse(value))) errorMessage = 'Date invalide (AAAA-MM-JJ).';
         break;
       case 'time': if (typeof value !== 'string' || !TIME_PATTERN.test(value)) errorMessage = 'Heure invalide (HH:MM).'; break;
+      case 'datetime':
+        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(value) || Number.isNaN(Date.parse(value))) {
+          errorMessage = 'Date et heure invalides (AAAA-MM-JJTHH:MM).';
+        }
+        break;
+      case 'boolean': if (typeof value !== 'boolean') errorMessage = 'Valeur vrai/faux attendue.'; break;
       case 'int':
         value = Number(value);
         if (!Number.isInteger(value) || value < (rule.min ?? -Infinity) || value > (rule.max ?? Infinity)) {

@@ -1,5 +1,6 @@
 import { wrapAsyncRoute } from '../utils/async-route-handler.js';
 import * as activitiesService from '../services/activities.service.js';
+import { visitorIdOf } from '../middlewares/auth.middleware.js';
 
 export const listActivities = wrapAsyncRoute(async (_request, response) => {
   response.json({ data: await activitiesService.listActivities() });
@@ -18,7 +19,7 @@ export const deleteActivity = wrapAsyncRoute(async (request, response) => {
 });
 
 export const registerToActivity = wrapAsyncRoute(async (request, response) => {
-  response.status(201).json({ data: await activitiesService.registerToActivity(request.body) });
+  response.status(201).json({ data: await activitiesService.registerToActivity(request.body, visitorIdOf(request)) });
 });
 
 export const listRegistrations = wrapAsyncRoute(async (request, response) => {

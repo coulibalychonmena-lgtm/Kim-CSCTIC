@@ -47,12 +47,13 @@ Supabase est la seule base de données : aucune donnée n'est gardée en mémoir
 - **Scripts SQL** : `database/migrations/001` à `009`, exécutés dans l'ordre par `npm run migrate` (rejouables sans risque ; la 008 active la sécurité RLS (la 009 crée `SITE_BACKGROUNDS`, protégée de la même façon) qui bloque l'API publique Supabase, seul le backend accède aux données). Pour la démo : ouvrir *SQL Editor* dans Supabase et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
 
 ## 3. Renseigner les données du Centre (depuis l'interface)
-Connectez-vous sur `/admin/login`, puis :
+Connectez-vous sur `/connexion` (même page pour tous : l'e-mail et le mot de passe `ADMIN_EMAIL` / `ADMIN_PASSWORD` ouvrent l'administration, un compte visiteur ouvre « Mon espace »), puis :
 
 | Onglet | Ce que l'administration peut faire |
 |---|---|
 | **Salles et espaces** | ajouter, modifier, supprimer une salle ; photo, capacité, équipements, tarif, statut « Disponible / En maintenance » |
 | **Formations** | ajouter, modifier, supprimer une formation ; photo, conditions d'inscription (niveau, adhésion), catégorie, tranche d'âge, nombre de places, horaires, description |
+| **Événements** / **Actualités** | ajouter, modifier, masquer (brouillon) ou supprimer ; image, date, lieu ; affichés sur l'accueil et dans « Mon espace », connus de Kim ; un événement terminé disparaît tout seul |
 | **Images du site** | remplacer, pour chacune des 3 sections de la page d'accueil (bandeau d'accueil, « Faire une demande », « Parler à Kim »), l'image d'arrière-plan ; « Rétablir l'image par défaut » restaure celle fournie dans `frontend/public/backgrounds/` |
 | **Informations et horaires** | contacts, adresse, réseaux sociaux, missions, vision… avec leur source officielle ; horaires d'ouverture jour par jour |
 
@@ -61,16 +62,27 @@ Le **Mot du Directeur Général** (migration 004) s'affiche en bas de la page d'
 Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ vidé est réellement effacé (par exemple, retirer le nombre de places supprime la limite). Une salle ou une formation déjà liée à des demandes ne peut pas être supprimée : mettez la salle « En maintenance », ou traitez d'abord les pré-inscriptions.
 
 ## 4. Déploiement (GitHub + Render)
-1. Poussez ce dossier sur un dépôt GitHub public (branche `main`).
-2. Render → **New → Blueprint** → choisissez le dépôt : `render.yaml` crée `kim-api` et `kim-web`.
-3. Renseignez les variables (`sync: false`) de `kim-api`, puis `VITE_API_URL` de `kim-web` (URL de l'API + `/api/v1`) et `FRONTEND_URL` de `kim-api` (URL du frontend).
-4. Renseignez aussi `CLOUDINARY_*`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` sur `kim-api`, puis exécutez `npm run migrate` avec la même `DATABASE_URL` (depuis votre poste ou le Shell Render).
-5. Chaque `git push` sur `main` réinstalle les dépendances et redéploie.
+1. Poussez ce dossier sur GitHub (branche `main`).
+2. Render → **New → Blueprint** : `render.yaml` crée `kim-api` (service web) et `kim-web` (**site statique**, jamais endormi). La règle `/* → /index.html` est déclarée dans `render.yaml` : rien à ajouter dans « Redirects/Rewrites ». Un `404.html` de repli est aussi généré au build.
+3. Renseignez `kim-api` : `DATABASE_URL`, `GEMINI_API_KEY`, `CLOUDINARY_*`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `FRONTEND_URL` (URL de `kim-web`, avec ou sans slash final), puis `kim-web` : `VITE_API_URL` (URL de l'API + `/api/v1`).
+4. Exécutez `npm run migrate` (dossier `backend`, même `DATABASE_URL`). Chaque migration n'est jouée qu'une fois ; les données de départ (004, 007) ne sont jamais rejouées : ce que vous modifiez ou supprimez dans l'admin n'est jamais recréé.
+5. L'API gratuite s'endort après 15 min d'inactivité : le site la réveille dès l'ouverture et n'affiche Kim que lorsqu'elle répond (`/api/v1/health`). Pour l'éviter, faites pinger cette adresse toutes les 10 min (UptimeRobot, gratuit).
+6. PWA : le site s'installe sur mobile et ordinateur (bouton « Installer l'application » dans l'en-tête).
+
+**Si la connexion échoue après un changement d'adresse du frontend** : `FRONTEND_URL` de `kim-api` ne contient pas la nouvelle adresse (l'API journalise `[CORS] origine refusée`).
+
+**Réservations simultanées** : chaque demande de salle est traitée sous verrou (une salle, un jour) puis contrôlée par une contrainte PostgreSQL anti-chevauchement ; une demande en attente ou validée occupe le créneau, une demande refusée le libère. Les inscriptions à une formation sont verrouillées de la même façon (pas de doublon, quota respecté).
+
+**Kim et les formulaires** : Kim n'enregistre jamais rien ; elle affiche le formulaire (bordure orange) dans le chat, pré-rempli avec ce que le visiteur a dit. La demande part uniquement quand tous les champs obligatoires sont remplis.
 
 ## 5. API (`/api/v1`)
 | Méthode | Route | Accès |
 |---|---|---|
 | POST | `/chat/message` | public |
+| POST | `/auth/register` · `/auth/login` | public |
+| GET | `/auth/me` · `/me/requests` | compte connecté |
+| GET | `/rooms/:id/availability?date=` · `/events` · `/news` | public |
+| GET/POST/PATCH/DELETE | `/admin/events` · `/admin/news` | admin |
 | GET | `/rooms` · `/activities` · `/opening-hours` · `/center-information` · `/site-backgrounds` | public |
 | POST | `/rooms/request` · `/activities/register` · `/partnerships` | public |
 | POST | `/auth/login` | public (renvoie le JWT) |

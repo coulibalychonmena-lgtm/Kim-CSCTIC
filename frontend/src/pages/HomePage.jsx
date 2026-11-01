@@ -1,32 +1,42 @@
-import { useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import ChatWindow from '../components/ChatWindow.jsx';
 import QuickActions from '../components/QuickActions.jsx';
 import Catalog from '../components/Catalog.jsx';
-import ModalDialog from '../components/ModalDialog.jsx';
-import RoomRequestForm from '../components/forms/RoomRequestForm.jsx';
-import RegistrationForm from '../components/forms/RegistrationForm.jsx';
-import PartnershipForm from '../components/forms/PartnershipForm.jsx';
 import { useChat } from '../context/ChatContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { useBackendStatus } from '../context/BackendStatusContext.jsx';
 
-const FORMS = {
-  room: { titleKey: 'form_room', Component: RoomRequestForm },
-  register: { titleKey: 'form_register', Component: RegistrationForm },
-  partner: { titleKey: 'form_partner', Component: PartnershipForm },
+// Liens de la page d'accueil : /chat?form=room&room=ID, ?form=register&activity=ID, ?form=partner, ?agent=1
+const FORM_BY_QUERY_VALUE = {
+  room: { type: 'room_request', prefillParam: ['room_id', 'room'] },
+  register: { type: 'activity_registration', prefillParam: ['activity_id', 'activity'] },
+  partner: { type: 'partnership', prefillParam: null },
 };
 
 export default function HomePage() {
   const { translate } = useLanguage();
-  const { addRequestSummary } = useChat();
+  const { openForm, send } = useChat();
+  const { isReady } = useBackendStatus();
   const [searchParams, setSearchParams] = useSearchParams();
-  const requestedForm = searchParams.get('form');
-  const open = Object.hasOwn(FORMS, requestedForm ?? '') ? requestedForm : null;
-  const setOpen = useCallback((formKey) => setSearchParams({ form: formKey }), [setSearchParams]);
-  const closeForm = useCallback(() => setSearchParams({}), [setSearchParams]);
+  const requestHandled = useRef(false);
 
-  const activeForm = open ? FORMS[open] : null;
+  useEffect(() => {
+    if (!isReady || requestHandled.current) return;
+    const requestedForm = searchParams.get('form') ?? '';
+    const wantsAgent = searchParams.get('agent') === '1';
+    if (!wantsAgent && !Object.hasOwn(FORM_BY_QUERY_VALUE, requestedForm)) return;
+    requestHandled.current = true;
+    if (wantsAgent) {
+      send(translate('agent_request'));
+    } else {
+      const { type, prefillParam } = FORM_BY_QUERY_VALUE[requestedForm];
+      const prefill = prefillParam && searchParams.get(prefillParam[1]) ? { [prefillParam[0]]: searchParams.get(prefillParam[1]) } : {};
+      openForm(type, prefill);
+    }
+    setSearchParams({}, { replace: true });
+  }, [isReady, searchParams, setSearchParams, openForm, send, translate]);
 
   return (
     <>
@@ -35,18 +45,10 @@ export default function HomePage() {
       <main id="main" className="home">
         <div className="home__chat">
           <ChatWindow />
-          <QuickActions onOpen={setOpen} />
+          <QuickActions />
         </div>
         <aside className="home__aside"><Catalog /></aside>
       </main>
-      {activeForm && (
-        <ModalDialog title={translate(activeForm.titleKey)} onClose={closeForm}>
-          <activeForm.Component
-            onCancel={closeForm}
-            onDone={(request) => { addRequestSummary(request); closeForm(); }}
-          />
-        </ModalDialog>
-      )}
     </>
   );
 }

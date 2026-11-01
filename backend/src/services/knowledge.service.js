@@ -6,7 +6,7 @@ const DAY_NAMES_FROM_MONDAY = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendr
 
 /** Charge l'état réel de la base (PostgreSQL / Supabase) pour nourrir Kim à chaque message. */
 export async function loadKnowledge() {
-  const [centerInformation, rooms, activities, openingHours, approvedBookings] = await Promise.all([
+  const [centerInformation, rooms, activities, openingHours, approvedBookings, events, news] = await Promise.all([
     query('SELECT TITLE, CONTENT, SOURCE_LABEL, SOURCE_URL FROM CENTER_INFORMATION ORDER BY CATEGORY, TITLE'),
     query('SELECT ID, NAME, SPACE_TYPE, MAX_CAPACITY, EQUIPMENT, DESCRIPTION, PRICING, STATUS, IMAGE_URL FROM ROOMS ORDER BY NAME'),
     query(`SELECT ID, TITLE, CATEGORY, AGE_MIN, AGE_MAX, AGE_RANGE_LABEL, TOTAL_SEATS, ASSIGNED_SEATS, DESCRIPTION, SCHEDULE, ENROLLMENT_CONDITIONS, IMAGE_URL
@@ -16,8 +16,13 @@ export async function loadKnowledge() {
     query(`SELECT request.ROOM_ID, room.NAME AS ROOM_NAME, TO_CHAR(request.REQUESTED_DATE, 'YYYY-MM-DD') AS REQUESTED_DATE,
                   TO_CHAR(request.START_TIME, 'HH24:MI') AS START_TIME, TO_CHAR(request.END_TIME, 'HH24:MI') AS END_TIME
            FROM ROOM_REQUESTS request JOIN ROOMS room ON room.ID = request.ROOM_ID
-           WHERE request.STATUS = ? AND request.REQUESTED_DATE >= CURRENT_DATE
-           ORDER BY request.REQUESTED_DATE, request.START_TIME`, [ROOM_REQUEST_STATUS.APPROVED]),
+           WHERE request.STATUS = ANY(?::text[]) AND request.REQUESTED_DATE >= CURRENT_DATE
+           ORDER BY request.REQUESTED_DATE, request.START_TIME`, [[ROOM_REQUEST_STATUS.PENDING, ROOM_REQUEST_STATUS.APPROVED]]),
+    query(`SELECT TITLE, DESCRIPTION, LOCATION, TO_CHAR(STARTS_AT AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') AS STARTS_AT
+           FROM EVENTS WHERE IS_PUBLISHED = TRUE AND COALESCE(ENDS_AT, STARTS_AT + INTERVAL '1 day') >= NOW()
+           ORDER BY STARTS_AT LIMIT 20`),
+    query(`SELECT TITLE, SUMMARY, TO_CHAR(PUBLISHED_AT AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS PUBLISHED_AT
+           FROM NEWS WHERE IS_PUBLISHED = TRUE AND PUBLISHED_AT <= NOW() ORDER BY PUBLISHED_AT DESC LIMIT 10`),
   ]);
   return {
     centerInformation,
@@ -25,6 +30,8 @@ export async function loadKnowledge() {
     activities,
     openingHours,
     approvedBookings,
+    events,
+    news,
   };
 }
 
@@ -34,7 +41,14 @@ export function formatKnowledge(knowledge) {
     (value === null || value === undefined || value === '' ? fallbackText : value);
   const lines = [];
 
-  lines.push('## INFORMATIONS OFFICIELLES DU CENTRE');
+  lines.push('## SERVICES DU CENTRE (index)');
+  lines.push('- Réservation d\'une salle ou d\'un espace → formulaire « room_request »');
+  lines.push('- Inscription à une formation ou activité → formulaire « activity_registration »');
+  lines.push('- Proposition de partenariat → formulaire « partnership »');
+  lines.push('- Assistance humaine → needs_human = true');
+  lines.push('- Événements et actualités du Centre → sections ci-dessous');
+
+  lines.push('\n## INFORMATIONS OFFICIELLES DU CENTRE');
   if (!knowledge.centerInformation.length) lines.push("- aucune information enregistrée pour le moment");
   for (const information of knowledge.centerInformation) {
     lines.push(
@@ -74,11 +88,21 @@ export function formatKnowledge(knowledge) {
     lines.push(`- ${DAY_NAMES_FROM_MONDAY[day.day_of_week]} : ${day.open_time}-${day.close_time}`);
   }
 
-  lines.push('\n## CRÉNEAUX DÉJÀ VALIDÉS (indisponibles)');
+  lines.push('\n## CRÉNEAUX DÉJÀ DEMANDÉS OU VALIDÉS (indisponibles)');
   if (!knowledge.approvedBookings.length) lines.push('- aucun');
   for (const booking of knowledge.approvedBookings) {
     lines.push(`- ${booking.room_name} (id=${booking.room_id}) le ${booking.requested_date} de ${booking.start_time} à ${booking.end_time}`);
   }
+
+  lines.push('\n## ÉVÉNEMENTS À VENIR');
+  if (!knowledge.events.length) lines.push('- aucun événement publié');
+  for (const event of knowledge.events) {
+    lines.push(`- ${event.starts_at} : ${event.title}${event.location ? ` (${event.location})` : ''}${event.description ? ` — ${event.description}` : ''}`);
+  }
+
+  lines.push('\n## ACTUALITÉS RÉCENTES');
+  if (!knowledge.news.length) lines.push('- aucune actualité publiée');
+  for (const item of knowledge.news) lines.push(`- ${item.published_at} : ${item.title}${item.summary ? ` — ${item.summary}` : ''}`);
 
   return lines.join('\n');
 }
@@ -117,4 +141,27 @@ export function resolveRequestedImages(knowledge, requestedImages) {
     .map((requested) => imagesByKey.get(`${requested?.kind}:${requested?.id}`))
     .filter((image) => image?.url)
     .slice(0, MAXIMUM_IMAGES_PER_REPLY);
+}
+
+const FORM_TYPES = {
+  room_request: ['room_id', 'requested_date', 'start_time', 'end_time', 'attendees', 'purpose'],
+  activity_registration: ['activity_id', 'age', 'current_level'],
+  partnership: ['partnership_type', 'organization'],
+};
+
+/**
+ * Formulaire que Kim demande d'afficher dans le chat. Seules les valeurs connues et plausibles
+ * sont pré-remplies (identifiants vérifiés dans la base) ; Kim n'enregistre jamais rien lui-même.
+ */
+export function resolveRequestedForm(knowledge, requestedForm) {
+  if (!requestedForm || !Object.hasOwn(FORM_TYPES, requestedForm.type)) return null;
+  const prefill = {};
+  for (const field of FORM_TYPES[requestedForm.type]) {
+    const value = requestedForm.prefill?.[field];
+    if (value === undefined || value === null || value === '') continue;
+    prefill[field] = typeof value === 'number' ? String(value) : String(value).slice(0, 1000);
+  }
+  if (prefill.room_id && !knowledge.rooms.some((room) => room.id === prefill.room_id)) delete prefill.room_id;
+  if (prefill.activity_id && !knowledge.activities.some((activity) => activity.id === prefill.activity_id)) delete prefill.activity_id;
+  return { type: requestedForm.type, prefill, state: 'open' };
 }

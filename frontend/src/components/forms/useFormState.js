@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 /** État d'un formulaire + soumission avec gestion des erreurs champ par champ renvoyées par l'API. */
-export function useFormState(initialValues) {
+export function useFormState(initialValues, { required = [] } = {}) {
+  const { translate } = useLanguage();
   const [values, setValues] = useState(initialValues);
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -17,7 +19,15 @@ export function useFormState(initialValues) {
 
   const handleSubmit = (submitHandler) => async (event) => {
     event.preventDefault();
-    setSubmitting(true); setFormError(''); setFieldErrors({});
+    setFormError('');
+    // Tant qu'un champ obligatoire est vide, rien n'est envoyé.
+    const missingFields = required.filter((fieldName) => String(values[fieldName] ?? '').trim() === '');
+    if (missingFields.length) {
+      setFieldErrors(Object.fromEntries(missingFields.map((fieldName) => [fieldName, translate('required_field')])));
+      setFormError(translate('required_missing'));
+      return;
+    }
+    setSubmitting(true); setFieldErrors({});
     try {
       await submitHandler(values);
     } catch (error) {

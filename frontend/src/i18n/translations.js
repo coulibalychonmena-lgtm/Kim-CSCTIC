@@ -1,3 +1,4 @@
+import { extraTranslations } from './extra-translations.js';
 // Textes d'interface uniquement. Toutes les données métier viennent de l'API.
 export const LANGS = [
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
@@ -112,3 +113,6 @@ export const translations = {
     warn_title: '참고',
   },
 };
+
+// Textes des fonctions ajoutées (réveil de Kim, formulaires dans le chat, comptes, suivi, accueil dynamique).
+for (const languageCode of Object.keys(extraTranslations)) Object.assign(translations[languageCode], extraTranslations[languageCode]);

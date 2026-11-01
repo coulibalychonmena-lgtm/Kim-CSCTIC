@@ -1,19 +1,10 @@
 import { query } from '../config/database.js';
-import { AppError } from '../middlewares/error.middleware.js';
-import { validateData } from '../middlewares/validate.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
-import { SUPPORTED_LANGUAGES, ROOM_REQUEST_STATUS } from '../utils/domain-values.js';
-import { roomRequestSchema, activityRegistrationSchema, partnershipRequestSchema } from '../validators/request-body-schemas.js';
+import { SUPPORTED_LANGUAGES } from '../utils/domain-values.js';
 import { buildSystemPrompt } from '../prompts/kim.prompt.js';
-import { loadKnowledge, allowedSources, resolveRequestedImages } from './knowledge.service.js';
-import { generateKimTurn, generateText } from './gemini.service.js';
-import { createRoomRequest } from './rooms.service.js';
-import { registerToActivity } from './activities.service.js';
-import { createPartnership } from './partnerships.service.js';
+import { loadKnowledge, allowedSources, resolveRequestedImages, resolveRequestedForm } from './knowledge.service.js';
+import { generateKimTurn } from './gemini.service.js';
 import { isTakeoverActive } from './human-takeover.service.js';
-
-const PENDING_VALIDATION_STATUS = ROOM_REQUEST_STATUS.PENDING;
-const NEW_PARTNERSHIP_STATUS = 'Nouveau';
 
 const FALLBACK_REPLY_BY_LANGUAGE = {
   fr: "Je ne parviens pas à répondre pour le moment. Votre question a été transmise à un agent du Centre qui vous répondra.",
@@ -28,53 +19,6 @@ async function loadHistory(sessionId) {
     [sessionId],
   );
   return historyRows.reverse();
-}
-
-/** Valide puis enregistre la demande émise par Kim ; renvoie le récapitulatif pour l'UI. */
-async function executeAction(action) {
-  const { type, data = {} } = action;
-  if (type === 'room_request') {
-    const roomRequestData = validateData(roomRequestSchema, data);
-    const created = await createRoomRequest(roomRequestData);
-    return {
-      kind: 'room_request', id: created.id, status: PENDING_VALIDATION_STATUS, warnings: created.warnings,
-      summary: {
-        room: created.room_name, date: roomRequestData.requested_date, start_time: roomRequestData.start_time,
-        end_time: roomRequestData.end_time, attendees: roomRequestData.attendees, purpose: roomRequestData.purpose,
-        requester: `${roomRequestData.requester_firstname} ${roomRequestData.requester_lastname}`,
-      },
-    };
-  }
-  if (type === 'activity_registration') {
-    const registrationData = validateData(activityRegistrationSchema, data);
-    const created = await registerToActivity(registrationData);
-    return {
-      kind: 'activity_registration', id: created.id, status: created.status, warnings: [],
-      summary: {
-        activity: created.activity_title, name: `${registrationData.firstname} ${registrationData.lastname}`,
-        age: registrationData.age, level: registrationData.current_level || null,
-      },
-    };
-  }
-  if (type === 'partnership') {
-    const partnershipData = validateData(partnershipRequestSchema, data);
-    const created = await createPartnership(partnershipData);
-    return {
-      kind: 'partnership', id: created.id, status: NEW_PARTNERSHIP_STATUS, warnings: [],
-      summary: { organization: partnershipData.organization, contact: partnershipData.contact_name, type: partnershipData.partnership_type },
-    };
-  }
-  return null;
-}
-
-async function explainError(error, language) {
-  const detail = error.details ? `${error.message} ${JSON.stringify(error.details)}` : error.message;
-  try {
-    return await generateText(
-      `Tu es Kim, assistant du CSCTICAO. Explique poliment et brièvement à l'utilisateur, en langue "${language}", `
-      + `que sa demande n'a PAS été enregistrée et pourquoi, puis ce qu'il doit corriger. Ne promets rien. Motif technique : ${detail}`,
-    ) || detail;
-  } catch { return detail; }
 }
 
 async function recordExchange({ sessionId, message, reply, language, sources, needsHuman }) {
@@ -95,7 +39,7 @@ export async function handleMessage({ message, sessionId, language }) {
   if (await isTakeoverActive(sessionId)) {
     await recordExchange({ sessionId, message, reply: null, language: preferredLanguage, sources: [], needsHuman: true });
     return {
-      reply: '', language: preferredLanguage, sources: [], images: [], needs_human: true, human_takeover: true, request: null,
+      reply: '', language: preferredLanguage, sources: [], images: [], needs_human: true, human_takeover: true, form: null,
     };
   }
   let reply;
@@ -103,7 +47,7 @@ export async function handleMessage({ message, sessionId, language }) {
   let sources = [];
   let images = [];
   let needsHuman = false;
-  let createdRequest = null;
+  let form = null;
 
   try {
     const knowledge = await loadKnowledge();
@@ -120,16 +64,7 @@ export async function handleMessage({ message, sessionId, language }) {
     images = resolveRequestedImages(knowledge, turn.images);
     if (!reply) throw new Error('Réponse vide de Gemini');
 
-    if (turn.action?.ready) {
-      try {
-        createdRequest = await executeAction(turn.action);
-      } catch (error) {
-        if (!(error instanceof AppError)) throw error;
-        reply = await explainError(error, replyLanguage);
-        sources = [];
-        images = [];
-      }
-    }
+    form = resolveRequestedForm(knowledge, turn.form);
   } catch (error) {
     console.error('[CHAT]', error);
     reply = FALLBACK_REPLY_BY_LANGUAGE[preferredLanguage];
@@ -137,9 +72,9 @@ export async function handleMessage({ message, sessionId, language }) {
     sources = [];
     images = [];
     needsHuman = true;
-    createdRequest = null;
+    form = null;
   }
 
   await recordExchange({ sessionId, message, reply, language: replyLanguage, sources, needsHuman });
-  return { reply, language: replyLanguage, sources, images, needs_human: needsHuman, human_takeover: false, request: createdRequest };
+  return { reply, language: replyLanguage, sources, images, needs_human: needsHuman, human_takeover: false, form };
 }

@@ -1,5 +1,6 @@
 import { useLanguage } from '../context/LanguageContext.jsx';
 import RequestSummaryCard from './RequestSummaryCard.jsx';
+import InlineChatForm from './InlineChatForm.jsx';
 
 export default function MessageBubble({ message }) {
   const { translate } = useLanguage();
@@ -29,6 +30,7 @@ export default function MessageBubble({ message }) {
             ))}
           </div>
         )}
+        {message.form && <InlineChatForm message={message} />}
         {message.request && <RequestSummaryCard request={message.request} />}
         {message.sources?.length > 0 && (
           <p className="sources">

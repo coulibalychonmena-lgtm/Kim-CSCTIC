@@ -1,4 +1,4 @@
-import { query } from '../config/database.js';
+import { query, withTransaction } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
 import { buildUpdateAssignments } from '../utils/sql-update-builder.js';
@@ -115,33 +115,42 @@ export async function deleteActivity(activityId) {
 // Pré-inscriptions
 // ---------------------------------------------------------------------------
 
-export async function registerToActivity(registrationData) {
-  const [activity] = await query(
-    'SELECT ID, TITLE, AGE_MIN, AGE_MAX, TOTAL_SEATS, ASSIGNED_SEATS FROM ACTIVITIES WHERE ID = ?',
-    [registrationData.activity_id],
-  );
-  if (!activity) throw new AppError(404, 'Formation introuvable.');
-  if (activity.age_min !== null && registrationData.age < activity.age_min) {
-    throw new AppError(422, `L'âge minimum requis pour « ${activity.title} » est de ${activity.age_min} ans.`);
-  }
-  if (activity.age_max !== null && registrationData.age > activity.age_max) {
-    throw new AppError(422, `L'âge maximum pour « ${activity.title} » est de ${activity.age_max} ans.`);
-  }
-  const isFull = activity.total_seats !== null && Number(activity.assigned_seats) >= Number(activity.total_seats);
-  const status = isFull ? REGISTRATION_STATUS.WAITLIST : REGISTRATION_STATUS.PENDING;
+export async function registerToActivity(registrationData, userId = null) {
+  return withTransaction(async (database) => {
+    // Verrou sur la formation : deux inscriptions simultanées sont traitées l'une après l'autre.
+    const [activity] = await database.query(
+      'SELECT ID, TITLE, AGE_MIN, AGE_MAX, TOTAL_SEATS, ASSIGNED_SEATS FROM ACTIVITIES WHERE ID = ? FOR UPDATE',
+      [registrationData.activity_id],
+    );
+    if (!activity) throw new AppError(404, 'Formation introuvable.');
+    if (activity.age_min !== null && registrationData.age < activity.age_min) {
+      throw new AppError(422, `L'âge minimum requis pour « ${activity.title} » est de ${activity.age_min} ans.`, { age: `Minimum ${activity.age_min} ans.` });
+    }
+    if (activity.age_max !== null && registrationData.age > activity.age_max) {
+      throw new AppError(422, `L'âge maximum pour « ${activity.title} » est de ${activity.age_max} ans.`, { age: `Maximum ${activity.age_max} ans.` });
+    }
+    const [duplicate] = await database.query(
+      `SELECT ID FROM ACTIVITY_REGISTRATIONS
+       WHERE ACTIVITY_ID = ? AND LOWER(EMAIL) = LOWER(?) AND LOWER(FIRSTNAME) = LOWER(?) AND LOWER(LASTNAME) = LOWER(?) AND STATUS <> ?`,
+      [activity.id, registrationData.email, registrationData.firstname, registrationData.lastname, REGISTRATION_STATUS.REFUSED],
+    );
+    if (duplicate) throw new AppError(409, `Une pré-inscription à « ${activity.title} » existe déjà pour cette personne.`);
 
-  const registrationId = generateIdentifier();
-  await query(
-    `INSERT INTO ACTIVITY_REGISTRATIONS
-       (ID, LASTNAME, FIRSTNAME, AGE, EMAIL, PHONE, ACTIVITY_ID, CURRENT_LEVEL, STATUS)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      registrationId, registrationData.lastname, registrationData.firstname, registrationData.age,
-      registrationData.email, registrationData.phone, registrationData.activity_id,
-      registrationData.current_level || null, status,
-    ],
-  );
-  return { id: registrationId, status, activity_title: activity.title };
+    const isFull = activity.total_seats !== null && Number(activity.assigned_seats) >= Number(activity.total_seats);
+    const status = isFull ? REGISTRATION_STATUS.WAITLIST : REGISTRATION_STATUS.PENDING;
+    const registrationId = generateIdentifier();
+    await database.query(
+      `INSERT INTO ACTIVITY_REGISTRATIONS
+         (ID, LASTNAME, FIRSTNAME, AGE, EMAIL, PHONE, ACTIVITY_ID, CURRENT_LEVEL, STATUS, USER_ID)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        registrationId, registrationData.lastname, registrationData.firstname, registrationData.age,
+        registrationData.email, registrationData.phone, registrationData.activity_id,
+        registrationData.current_level || null, status, userId,
+      ],
+    );
+    return { id: registrationId, status, activity_title: activity.title };
+  });
 }
 
 export async function listRegistrations(statusFilter) {
@@ -157,30 +166,31 @@ export async function listRegistrations(statusFilter) {
   );
 }
 
-/** Valide / refuse une pré-inscription et tient le compteur de places à jour. */
+/** Valide / refuse une pré-inscription et tient le compteur de places à jour (formation verrouillée pendant le calcul). */
 export async function updateRegistrationStatus(registrationId, { status: newStatus, admin_comment: adminComment }) {
-  const [registration] = await query(
-    `SELECT registration.ID, registration.STATUS, registration.ACTIVITY_ID, activity.TOTAL_SEATS, activity.ASSIGNED_SEATS
-     FROM ACTIVITY_REGISTRATIONS registration JOIN ACTIVITIES activity ON activity.ID = registration.ACTIVITY_ID
-     WHERE registration.ID = ?`,
-    [registrationId],
-  );
-  if (!registration) throw new AppError(404, 'Pré-inscription introuvable.');
+  const [registrationPreview] = await query('SELECT ACTIVITY_ID FROM ACTIVITY_REGISTRATIONS WHERE ID = ?', [registrationId]);
+  if (!registrationPreview) throw new AppError(404, 'Pré-inscription introuvable.');
   if (newStatus === REGISTRATION_STATUS.REFUSED && !adminComment) {
     throw new AppError(400, 'Un message est obligatoire pour refuser une pré-inscription.');
   }
+  return withTransaction(async (database) => {
+    const [activity] = await database.query('SELECT ID, TOTAL_SEATS, ASSIGNED_SEATS FROM ACTIVITIES WHERE ID = ? FOR UPDATE', [registrationPreview.activity_id]);
+    const [registration] = await database.query('SELECT ID, STATUS FROM ACTIVITY_REGISTRATIONS WHERE ID = ?', [registrationId]);
+    const becomesConfirmed = newStatus === REGISTRATION_STATUS.CONFIRMED && registration.status !== REGISTRATION_STATUS.CONFIRMED;
+    const stopsBeingConfirmed = registration.status === REGISTRATION_STATUS.CONFIRMED && newStatus !== REGISTRATION_STATUS.CONFIRMED;
 
-  const becomesConfirmed = newStatus === REGISTRATION_STATUS.CONFIRMED && registration.status !== REGISTRATION_STATUS.CONFIRMED;
-  const stopsBeingConfirmed = registration.status === REGISTRATION_STATUS.CONFIRMED && newStatus !== REGISTRATION_STATUS.CONFIRMED;
-
-  if (becomesConfirmed) {
-    if (registration.total_seats !== null && Number(registration.assigned_seats) >= Number(registration.total_seats)) {
-      throw new AppError(409, 'Plus aucune place disponible dans cette formation.');
+    if (becomesConfirmed) {
+      if (activity.total_seats !== null && Number(activity.assigned_seats) >= Number(activity.total_seats)) {
+        throw new AppError(409, 'Plus aucune place disponible dans cette formation.');
+      }
+      await database.query('UPDATE ACTIVITIES SET ASSIGNED_SEATS = ASSIGNED_SEATS + 1 WHERE ID = ?', [activity.id]);
+    } else if (stopsBeingConfirmed) {
+      await database.query('UPDATE ACTIVITIES SET ASSIGNED_SEATS = GREATEST(ASSIGNED_SEATS - 1, 0) WHERE ID = ?', [activity.id]);
     }
-    await query('UPDATE ACTIVITIES SET ASSIGNED_SEATS = ASSIGNED_SEATS + 1 WHERE ID = ?', [registration.activity_id]);
-  } else if (stopsBeingConfirmed) {
-    await query('UPDATE ACTIVITIES SET ASSIGNED_SEATS = GREATEST(ASSIGNED_SEATS - 1, 0) WHERE ID = ?', [registration.activity_id]);
-  }
-  await query('UPDATE ACTIVITY_REGISTRATIONS SET STATUS = ?, ADMIN_COMMENT = ? WHERE ID = ?', [newStatus, adminComment || null, registrationId]);
-  return { id: registrationId, status: newStatus, admin_comment: adminComment || null };
+    await database.query(
+      'UPDATE ACTIVITY_REGISTRATIONS SET STATUS = ?, ADMIN_COMMENT = ?, UPDATED_AT = NOW() WHERE ID = ?',
+      [newStatus, adminComment || null, registrationId],
+    );
+    return { id: registrationId, status: newStatus, admin_comment: adminComment || null };
+  });
 }

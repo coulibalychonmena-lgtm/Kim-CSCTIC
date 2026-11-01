@@ -1,13 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { adminService } from '../services/adminService.js';
+import { authService } from '../services/authService.js';
 
 const AuthContext = createContext(null);
-const STORAGE_KEY = 'kim_admin_session';
+const STORAGE_KEY = 'kim_session';
+export const ADMINISTRATOR_ROLE = 'Administrateur';
 
 const readSession = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null; } catch { return null; }
 };
 
+/** Connexion unique pour tous : le rôle du compte décide de l'espace affiché (visiteur ou administration). */
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(readSession);
 
@@ -16,11 +18,14 @@ export function AuthProvider({ children }) {
     setSession(null);
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    const loginResponse = await adminService.login(email, password);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(loginResponse));
-    setSession(loginResponse);
+  const openSession = useCallback((sessionData) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+    setSession(sessionData);
+    return sessionData.user;
   }, []);
+
+  const login = useCallback(async (email, password) => openSession(await authService.login(email, password)), [openSession]);
+  const register = useCallback(async (accountData) => openSession(await authService.register(accountData)), [openSession]);
 
   // Le client API déclenche cet événement lorsque le jeton est refusé (401).
   useEffect(() => {
@@ -32,9 +37,9 @@ export function AuthProvider({ children }) {
     token: session?.token || null,
     user: session?.user || null,
     isAuthenticated: Boolean(session?.token),
-    login,
-    logout,
-  }), [session, login, logout]);
+    isAdministrator: session?.user?.role === ADMINISTRATOR_ROLE,
+    login, register, logout,
+  }), [session, login, register, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

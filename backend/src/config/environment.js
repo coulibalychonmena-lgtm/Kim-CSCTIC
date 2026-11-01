@@ -5,7 +5,7 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '8h',
   frontendUrls: (process.env.FRONTEND_URL || 'http://localhost:5173')
-    .split(',').map((url) => url.trim()).filter(Boolean),
+    .split(',').map((url) => url.trim().replace(/\/+$/, '')).filter(Boolean),
   databaseUrl: process.env.DATABASE_URL,
   administrator: {
     fullName: process.env.ADMIN_FULL_NAME || 'Administrateur',

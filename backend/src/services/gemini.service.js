@@ -10,7 +10,7 @@ const toGeminiContents = (history, message) => [
 
 function parseKimTurn(rawText) {
   const text = String(rawText || '').replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
-  try { return JSON.parse(text); } catch { return { reply: text, sources: [], needs_human: false, images: [], action: null }; }
+  try { return JSON.parse(text); } catch { return { reply: text, sources: [], needs_human: false, images: [], form: null }; }
 }
 
 /** Un tour de conversation de Kim : renvoie l'objet JSON structuré. */

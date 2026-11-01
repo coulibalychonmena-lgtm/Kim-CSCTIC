@@ -4,13 +4,18 @@ import FormActions from './FormActions.jsx';
 import { useFormState } from './useFormState.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { publicService } from '../../services/publicService.js';
+import { useAccountPrefill } from './useAccountPrefill.js';
 
-export default function RegistrationForm({ onDone, onCancel }) {
+const REQUIRED_FIELDS = ['activity_id', 'lastname', 'firstname', 'age', 'email', 'phone'];
+
+export default function RegistrationForm({ onDone, onCancel, prefill = {} }) {
   const { translate } = useLanguage();
+  const { token, contact } = useAccountPrefill();
   const [activities, setActivities] = useState(null);
   const formState = useFormState({
-    activity_id: '', lastname: '', firstname: '', age: '', email: '', phone: '', current_level: '',
-  });
+    activity_id: '', lastname: contact.lastname, firstname: contact.firstname, age: '', email: contact.email, phone: contact.phone, current_level: '',
+    ...prefill,
+  }, { required: REQUIRED_FIELDS });
 
   useEffect(() => {
     publicService.listActivities().then(setActivities).catch(() => setActivities([]));
@@ -18,7 +23,7 @@ export default function RegistrationForm({ onDone, onCancel }) {
 
   const onSubmit = formState.handleSubmit(async (values) => {
     const age = Number(values.age);
-    const created = await publicService.submitActivityRegistration({ ...values, age });
+    const created = await publicService.submitActivityRegistration({ ...values, age }, token);
     onDone({
       kind: 'activity_registration', id: created.id, status: created.status, warnings: [],
       summary: {

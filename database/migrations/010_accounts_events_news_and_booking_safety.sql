@@ -1,0 +1,63 @@
+-- ============================================================
+-- KIM / CSCTICAO - Migration 010 : comptes visiteurs, suivi, événements, actualités,
+--                                  sécurité des réservations simultanées
+-- Aucune donnée n'est insérée : événements et actualités sont saisis depuis /admin.
+-- Idempotente : peut être rejouée sans risque.
+-- ============================================================
+
+-- Comptes visiteurs (connexion / création de compte)
+ALTER TABLE USERS ADD COLUMN IF NOT EXISTS PHONE VARCHAR(40);
+
+-- Rattachement des demandes au compte (historique et suivi) + date de dernier changement
+ALTER TABLE ROOM_REQUESTS         ADD COLUMN IF NOT EXISTS USER_ID VARCHAR(36) REFERENCES USERS(ID) ON DELETE SET NULL;
+ALTER TABLE ACTIVITY_REGISTRATIONS ADD COLUMN IF NOT EXISTS USER_ID VARCHAR(36) REFERENCES USERS(ID) ON DELETE SET NULL;
+ALTER TABLE PARTNERSHIP_REQUESTS  ADD COLUMN IF NOT EXISTS USER_ID VARCHAR(36) REFERENCES USERS(ID) ON DELETE SET NULL;
+ALTER TABLE ROOM_REQUESTS         ADD COLUMN IF NOT EXISTS UPDATED_AT TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE ACTIVITY_REGISTRATIONS ADD COLUMN IF NOT EXISTS UPDATED_AT TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE PARTNERSHIP_REQUESTS  ADD COLUMN IF NOT EXISTS UPDATED_AT TIMESTAMPTZ DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS IDX_ROOM_REQUESTS_USER          ON ROOM_REQUESTS (USER_ID);
+CREATE INDEX IF NOT EXISTS IDX_ACTIVITY_REGISTRATIONS_USER ON ACTIVITY_REGISTRATIONS (USER_ID);
+CREATE INDEX IF NOT EXISTS IDX_PARTNERSHIP_REQUESTS_USER   ON PARTNERSHIP_REQUESTS (USER_ID);
+CREATE INDEX IF NOT EXISTS IDX_ROOM_REQUESTS_SLOT          ON ROOM_REQUESTS (ROOM_ID, REQUESTED_DATE);
+
+-- Événements du Centre
+CREATE TABLE IF NOT EXISTS EVENTS (
+  ID            VARCHAR(36)   DEFAULT gen_random_uuid()::text PRIMARY KEY,
+  TITLE         VARCHAR(200)  NOT NULL,
+  DESCRIPTION   VARCHAR(4000),
+  LOCATION      VARCHAR(200),
+  STARTS_AT     TIMESTAMPTZ   NOT NULL,
+  ENDS_AT       TIMESTAMPTZ,
+  IMAGE_URL     VARCHAR(500),
+  IS_PUBLISHED  BOOLEAN       NOT NULL DEFAULT TRUE,
+  CREATED_AT    TIMESTAMPTZ   DEFAULT NOW()
+);
+
+-- Actualités du Centre
+CREATE TABLE IF NOT EXISTS NEWS (
+  ID            VARCHAR(36)   DEFAULT gen_random_uuid()::text PRIMARY KEY,
+  TITLE         VARCHAR(200)  NOT NULL,
+  SUMMARY       VARCHAR(500),
+  CONTENT       VARCHAR(8000) NOT NULL,
+  IMAGE_URL     VARCHAR(500),
+  IS_PUBLISHED  BOOLEAN       NOT NULL DEFAULT TRUE,
+  PUBLISHED_AT  TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE EVENTS ENABLE ROW LEVEL SECURITY;
+ALTER TABLE NEWS   ENABLE ROW LEVEL SECURITY;
+
+-- Filet de sécurité : deux demandes non refusées ne peuvent JAMAIS se chevaucher sur une même salle,
+-- même si deux visiteurs valident au même instant (le backend pose aussi un verrou avant d'écrire).
+DO $$ BEGIN CREATE EXTENSION IF NOT EXISTS btree_gist;
+EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'btree_gist indisponible : le verrou applicatif reste actif (%).', SQLERRM; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE ROOM_REQUESTS ADD CONSTRAINT ROOM_REQUESTS_NO_OVERLAP EXCLUDE USING gist (
+    ROOM_ID WITH =,
+    tsrange(REQUESTED_DATE + START_TIME, REQUESTED_DATE + END_TIME) WITH &&
+  ) WHERE (STATUS <> 'Refusée');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN OTHERS THEN RAISE NOTICE 'Contrainte anti-chevauchement non appliquée (%) : le verrou applicatif reste actif.', SQLERRM;
+END $$;

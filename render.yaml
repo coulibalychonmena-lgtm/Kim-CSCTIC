@@ -1,39 +1,41 @@
-# Blueprint Render : deux services Web distincts (backend API + frontend React).
-# Les secrets sont saisis dans le tableau de bord Render (sync: false).
+# Blueprint Render : l'API (service web) et le frontend (site statique, jamais endormi).
 services:
   - type: web
     name: kim-api
     runtime: node
     rootDir: backend
     plan: free
-    branch: main
-    autoDeploy: true
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/v1/health
     envVars:
-      - { key: NODE_VERSION, value: "20" }
-      - { key: DATABASE_URL, sync: false }   # Supabase → Connect → Session pooler (URI)
+      - { key: NODE_VERSION, value: 20 }
+      - { key: DATABASE_URL, sync: false }
       - { key: GEMINI_API_KEY, sync: false }
       - { key: GEMINI_MODEL, value: gemini-2.5-flash }
-      - { key: JWT_SECRET, generateValue: true }
-      - { key: FRONTEND_URL, sync: false }   # ex : https://kim-web.onrender.com
       - { key: CLOUDINARY_CLOUD_NAME, sync: false }
       - { key: CLOUDINARY_API_KEY, sync: false }
       - { key: CLOUDINARY_API_SECRET, sync: false }
+      - { key: JWT_SECRET, generateValue: true }
       - { key: ADMIN_FULL_NAME, value: Administrateur }
       - { key: ADMIN_EMAIL, sync: false }
-      - { key: ADMIN_PASSWORD, sync: false }  # 10 caractères minimum
+      - { key: ADMIN_PASSWORD, sync: false }
+      # URL du site statique, ex. https://kim-web.onrender.com (plusieurs valeurs séparées par des virgules ; « * » = toutes)
+      - { key: FRONTEND_URL, sync: false }
 
   - type: web
     name: kim-web
-    runtime: node
+    runtime: static
     rootDir: frontend
-    plan: free
-    branch: main
-    autoDeploy: true
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    staticPublishPath: dist
+    # Règle de réécriture déclarée ici : plus rien à ajouter à la main dans « Redirects/Rewrites ».
+    routes:
+      - { type: rewrite, source: /*, destination: /index.html }
+    headers:
+      - { path: /sw.js, name: Cache-Control, value: no-cache }
+      - { path: /index.html, name: Cache-Control, value: no-cache }
     envVars:
-      - { key: NODE_VERSION, value: "20" }
-      - { key: VITE_API_URL, sync: false }   # ex : https://kim-api.onrender.com/api/v1
+      - { key: NODE_VERSION, value: 20 }
+      # URL de l'API incluant /api/v1, ex. https://kim-api.onrender.com/api/v1
+      - { key: VITE_API_URL, sync: false }

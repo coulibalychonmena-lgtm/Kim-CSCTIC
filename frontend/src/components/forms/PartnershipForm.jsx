@@ -3,18 +3,23 @@ import FormActions from './FormActions.jsx';
 import { useFormState } from './useFormState.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { publicService } from '../../services/publicService.js';
+import { useAccountPrefill } from './useAccountPrefill.js';
+
+const REQUIRED_FIELDS = ['organization', 'contact_name', 'email', 'partnership_type', 'description'];
 
 const PARTNERSHIP_TYPES = ['Technique', 'Financier', 'Événementiel', 'Pédagogique'];
 const NEW_PARTNERSHIP_STATUS = 'Nouveau';
 
-export default function PartnershipForm({ onDone, onCancel }) {
+export default function PartnershipForm({ onDone, onCancel, prefill = {} }) {
   const { translate } = useLanguage();
+  const { token, contact } = useAccountPrefill();
   const formState = useFormState({
-    organization: '', contact_name: '', email: '', phone: '', partnership_type: '', description: '',
-  });
+    organization: '', contact_name: `${contact.firstname} ${contact.lastname}`.trim(), email: contact.email, phone: contact.phone, partnership_type: '', description: '',
+    ...prefill,
+  }, { required: REQUIRED_FIELDS });
 
   const onSubmit = formState.handleSubmit(async (values) => {
-    const created = await publicService.submitPartnershipProposal(values);
+    const created = await publicService.submitPartnershipProposal(values, token);
     onDone({
       kind: 'partnership', id: created.id, status: NEW_PARTNERSHIP_STATUS, warnings: [],
       summary: { organization: values.organization, contact: values.contact_name, type: values.partnership_type },

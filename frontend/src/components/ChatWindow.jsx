@@ -3,14 +3,17 @@ import { useChat } from '../context/ChatContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import MessageBubble from './MessageBubble.jsx';
 import TypingIndicator from './TypingIndicator.jsx';
+import WakePanel from './WakePanel.jsx';
+import { useBackendStatus } from '../context/BackendStatusContext.jsx';
 
 export default function ChatWindow() {
   const { translate } = useLanguage();
   const { messages, typing, send } = useChat();
+  const { isReady } = useBackendStatus();
   const [draft, setDraft] = useState('');
   const endRef = useRef(null);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages, typing]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages, typing, isReady]);
 
   const submit = (event) => {
     event.preventDefault();
@@ -22,6 +25,8 @@ export default function ChatWindow() {
   const onKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) submit(event);
   };
+
+  if (!isReady) return <section className="chat chat--waking" aria-label="Kim"><WakePanel /></section>;
 
   return (
     <section className="chat" aria-label="Kim">
