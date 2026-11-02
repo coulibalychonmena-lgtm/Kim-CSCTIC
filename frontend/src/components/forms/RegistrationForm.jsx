@@ -9,7 +9,7 @@ import { useAccountPrefill } from './useAccountPrefill.js';
 const REQUIRED_FIELDS = ['activity_id', 'lastname', 'firstname', 'age', 'email', 'phone'];
 
 export default function RegistrationForm({ onDone, onCancel, prefill = {} }) {
-  const { translate } = useLanguage();
+  const { translate, lang } = useLanguage();
   const { token, contact } = useAccountPrefill();
   const [activities, setActivities] = useState(null);
   const formState = useFormState({
@@ -18,8 +18,8 @@ export default function RegistrationForm({ onDone, onCancel, prefill = {} }) {
   }, { required: REQUIRED_FIELDS });
 
   useEffect(() => {
-    publicService.listActivities().then(setActivities).catch(() => setActivities([]));
-  }, []);
+    publicService.listActivities(lang).then(setActivities).catch(() => setActivities([]));
+  }, [lang]);
 
   const onSubmit = formState.handleSubmit(async (values) => {
     const age = Number(values.age);

@@ -53,6 +53,7 @@ Connectez-vous sur `/connexion` (même page pour tous : l'e-mail et le mot de pa
 |---|---|
 | **Salles et espaces** | ajouter, modifier, supprimer une salle ; photo, capacité, équipements, tarif, statut « Disponible / En maintenance » |
 | **Formations** | ajouter, modifier, supprimer une formation ; photo, conditions d'inscription (niveau, adhésion), catégorie, tranche d'âge, nombre de places, horaires, description |
+| **Traduction automatique** | tout ce que l'administration saisit en français (salles, formations, informations du Centre, événements, actualités, vidéos, diapositives, suggestions, messages de l'équipe) est traduit par Kim dans la langue du visiteur (anglais, coréen, espagnol, portugais, arabe, chinois, etc.). Les traductions sont gardées en base (`CONTENT_TRANSLATIONS`) : une modification de texte déclenche automatiquement sa nouvelle traduction, préparée en arrière-plan après chaque enregistrement. L'administration reste en français. Une suggestion du chat saisie à la main en anglais ou en coréen est prioritaire |
 | **Description automatique** | partout où l'on ajoute une image ou une vidéo (salles, formations, événements, actualités, vidéos, diapositives), Kim analyse l'image (ou la miniature YouTube, ou le titre) et écrit une description dans le champ dès que l'image est ajoutée ; l'administration la modifie puis enregistre. Bouton « Proposer une description avec Kim » pour la refaire. Seules les images du Cloudinary du Centre et les miniatures YouTube sont analysées |
 | **Présentation Kim** | voir le texte que Kim rédige pour chaque salle et formation (diaporama d'images avec boutons réserver / s'inscrire / contacter), le **corriger** ou y ajouter un **complément**, choisir le bouton d'action, l'ordre, masquer, ajouter des diapositives personnalisées ; les corrections sont reprises telles quelles par Kim |
 | **Suggestions du chat** | boutons proposés à l'ouverture du chat (poser une question, présenter les services, montrer les vidéos, ouvrir un formulaire, contacter un agent), en français, anglais et coréen |
@@ -73,9 +74,13 @@ Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ v
 5. L'API gratuite s'endort après 15 min d'inactivité : le site la réveille en silence dès l'ouverture. Le chat affiche déjà l'accueil de Kim avec « Kim se charge… Veuillez patienter un instant, s'il vous plaît. » et débloque la saisie dès que l'API répond (`/api/v1/health`). Pour l'éviter, faites pinger cette adresse toutes les 10 min (UptimeRobot, gratuit).
 6. PWA : le site s'installe sur mobile et ordinateur (bouton « Installer l'application » dans l'en-tête).
 
+**Si Kim reste sur « se charge… »** : au bout d'environ 75 s, le chat affiche la cause. « Le site n'est pas relié à son serveur » = `VITE_API_URL` manquant ou incorrect sur `kim-web` ; `VITE_API_URL` est intégré au site au moment du build, donc après l'avoir défini il faut relancer un déploiement (*Manual Deploy → Clear build cache & deploy*). L'adresse peut être donnée avec ou sans `/api/v1`. « Le serveur refuse ce site » = ajouter l'adresse du site dans `FRONTEND_URL` de `kim-api` (les sites `*.onrender.com` sont déjà acceptés). Vérification rapide : ouvrir `https://VOTRE-API.onrender.com/api/v1/health` doit afficher `{"status":"ok"}`.
+
 **Si la connexion échoue après un changement d'adresse du frontend** : `FRONTEND_URL` de `kim-api` ne contient pas la nouvelle adresse (l'API journalise `[CORS] origine refusée`).
 
 **Réservations simultanées** : chaque demande de salle est traitée sous verrou (une salle, un jour) puis contrôlée par une contrainte PostgreSQL anti-chevauchement ; une demande en attente ou validée occupe le créneau, une demande refusée le libère. Les inscriptions à une formation sont verrouillées de la même façon (pas de doublon, quota respecté).
+
+**Langue de Kim** : Kim répond dans la langue du dernier message du visiteur, quelle que soit la langue de l'interface, et traduit les données du Centre (diaporama, légendes des photos, sources) dans cette langue. Si la traduction échoue, le texte français s'affiche : le site ne casse jamais.
 
 **Kim et les formulaires** : Kim n'enregistre jamais rien ; elle affiche le formulaire (bordure orange) dans le chat, pré-rempli avec ce que le visiteur a dit. La demande part uniquement quand tous les champs obligatoires sont remplis.
 

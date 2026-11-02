@@ -13,7 +13,7 @@ const PENDING_VALIDATION_STATUS = 'En attente de validation humaine';
 const AVAILABLE_ROOM_STATUS = 'Disponible';
 
 export default function RoomRequestForm({ onDone, onCancel, prefill = {} }) {
-  const { translate } = useLanguage();
+  const { translate, lang } = useLanguage();
   const { token, contact } = useAccountPrefill();
   const [availability, setAvailability] = useState(null);
   const [bookableRooms, setBookableRooms] = useState(null);
@@ -41,10 +41,10 @@ export default function RoomRequestForm({ onDone, onCancel, prefill = {} }) {
     : null;
 
   useEffect(() => {
-    publicService.listRooms()
+    publicService.listRooms(lang)
       .then((rooms) => setBookableRooms(rooms.filter((room) => room.status === AVAILABLE_ROOM_STATUS)))
       .catch(() => setBookableRooms([]));
-  }, []);
+  }, [lang]);
 
   const onSubmit = formState.handleSubmit(async (values) => {
     const roomRequest = {

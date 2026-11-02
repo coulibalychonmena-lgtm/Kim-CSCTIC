@@ -4,16 +4,16 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 
 /** Catalogue lu en direct depuis l'API (donc depuis la base Supabase) : ce que l'administration saisit apparaît ici. */
 export default function Catalog() {
-  const { translate } = useLanguage();
+  const { translate, lang } = useLanguage();
   const [catalog, setCatalog] = useState({ loading: true, failed: false, rooms: [], activities: [] });
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([publicService.listRooms(), publicService.listActivities()])
+    Promise.all([publicService.listRooms(lang), publicService.listActivities(lang)])
       .then(([rooms, activities]) => isMounted && setCatalog({ loading: false, failed: false, rooms, activities }))
       .catch(() => isMounted && setCatalog({ loading: false, failed: true, rooms: [], activities: [] }));
     return () => { isMounted = false; };
-  }, []);
+  }, [lang]);
 
   if (catalog.loading) return <p className="muted">{translate('loading')}</p>;
   if (catalog.failed) return <p className="muted">{translate('load_error')}</p>;

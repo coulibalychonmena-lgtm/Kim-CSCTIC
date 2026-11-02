@@ -1,9 +1,11 @@
 import { wrapAsyncRoute } from '../utils/async-route-handler.js';
 import * as roomsService from '../services/rooms.service.js';
 import { visitorIdOf } from '../middlewares/auth.middleware.js';
+import { requestedLanguage } from '../utils/request-language.js';
+import { publicRooms } from '../services/public-content.service.js';
 
-export const listRooms = wrapAsyncRoute(async (_request, response) => {
-  response.json({ data: await roomsService.listRooms() });
+export const listRooms = wrapAsyncRoute(async (request, response) => {
+  response.json({ data: await publicRooms(requestedLanguage(request)) });
 });
 
 export const createRoom = wrapAsyncRoute(async (request, response) => {

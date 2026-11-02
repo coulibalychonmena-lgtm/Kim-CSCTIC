@@ -2,11 +2,9 @@ import { query } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { buildUpdateAssignments } from '../utils/sql-update-builder.js';
 import { generateText } from './gemini.service.js';
+import { translateTexts } from './translation.service.js';
 
 const AVAILABLE_ROOM_STATUS = 'Disponible';
-const LANGUAGE_NAME = { en: 'anglais', ko: 'coréen' };
-const translationCache = new Map();
-
 const SLIDE_SELECT = `
   SELECT slide.ID, slide.KIND, slide.REF_ID, slide.AI_TEXT, slide.AI_GENERATED_AT, slide.ADMIN_TEXT, slide.ADDITIVE,
          slide.ACTION_TYPE, slide.ACTION_LABEL, slide.ACTION_URL, slide.SORT_ORDER, slide.IS_PUBLISHED,
@@ -90,19 +88,6 @@ async function ensureAiTexts(slides) {
 /** Texte affiché : correction de l'administration (sinon texte de Kim) + complément. */
 const finalTextOf = (slide) => [slide.admin_text || slide.ai_text, slide.additive].filter(Boolean).join(' ');
 
-async function localize(text, language) {
-  if (!text || !LANGUAGE_NAME[language]) return text;
-  const cacheKey = `${language}|${text}`;
-  if (translationCache.has(cacheKey)) return translationCache.get(cacheKey);
-  try {
-    const translated = await generateText(`Traduis fidèlement en ${LANGUAGE_NAME[language]}, sans rien ajouter ni retirer, texte seul :\n${text}`);
-    if (translated) { translationCache.set(cacheKey, translated); return translated; }
-  } catch (error) {
-    console.error('[PRÉSENTATION] traduction impossible :', error.message);
-  }
-  return text;
-}
-
 function resolveAction(slide) {
   const { action_type: type, action_label: label, action_url: url } = slide;
   if (type === 'none') return null;
@@ -120,10 +105,16 @@ export async function listPresentation(language = 'fr') {
   await syncSlidesWithCatalog();
   const slides = await query(`${SLIDE_SELECT} WHERE slide.IS_PUBLISHED = TRUE ${SLIDE_ORDER}`);
   await ensureAiTexts(slides);
-  const presentation = await Promise.all(slides.map(async (slide) => ({
-    id: slide.id, title: slide.title, image_url: slide.image_url,
-    description: await localize(finalTextOf(slide), language), action: resolveAction(slide),
-  })));
+  const rawSlides = slides.map((slide) => ({
+    id: slide.id, title: slide.title, image_url: slide.image_url, description: finalTextOf(slide), action: resolveAction(slide),
+  }));
+  // Titres, descriptions et libellés de boutons traduits d'un coup (cache en base : plus rien à retraduire ensuite).
+  const texts = rawSlides.flatMap((slide) => [slide.title, slide.description, slide.action?.label || '']);
+  const translated = await translateTexts(texts, language);
+  const presentation = rawSlides.map((slide, position) => ({
+    ...slide, title: translated[position * 3], description: translated[position * 3 + 1],
+    action: slide.action && { ...slide.action, label: slide.action.label ? translated[position * 3 + 2] : slide.action.label },
+  }));
   if (slides.length) await query('UPDATE PRESENTATION_SLIDES SET SHOWN_COUNT = SHOWN_COUNT + 1, LAST_SHOWN_AT = NOW() WHERE ID = ANY(?::text[])', [slides.map((slide) => slide.id)]);
   return presentation;
 }

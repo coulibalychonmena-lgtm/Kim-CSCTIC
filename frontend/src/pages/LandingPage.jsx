@@ -45,15 +45,15 @@ function AccountCta({ headingId }) {
 
 /** Page d'accueil : tout le contenu (espaces, formations, événements, actualités, contacts) vient de l'administration. */
 export default function LandingPage() {
-  const { translate } = useLanguage();
+  const { translate, lang } = useLanguage();
   const backgroundFor = useSiteBackgrounds();
-  const { data: rooms } = useLoadedData(publicService.listRooms);
-  const { data: activities } = useLoadedData(publicService.listActivities);
-  const { data: events } = useLoadedData(publicService.listEvents);
-  const { data: videos } = useLoadedData(publicService.listVideos);
-  const { data: news } = useLoadedData(publicService.listNews);
+  const { data: rooms } = useLoadedData(() => publicService.listRooms(lang), [lang]);
+  const { data: activities } = useLoadedData(() => publicService.listActivities(lang), [lang]);
+  const { data: events } = useLoadedData(() => publicService.listEvents(lang), [lang]);
+  const { data: videos } = useLoadedData(() => publicService.listVideos(lang), [lang]);
+  const { data: news } = useLoadedData(() => publicService.listNews(lang), [lang]);
   const { data: openingHours } = useLoadedData(publicService.listOpeningHours);
-  const { data: centerInformation } = useLoadedData(publicService.listCenterInformation);
+  const { data: centerInformation } = useLoadedData(() => publicService.listCenterInformation(lang), [lang]);
   const contacts = centerInformation.filter((entry) => entry.category === CONTACT_CATEGORY);
 
   return (

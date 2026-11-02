@@ -64,8 +64,8 @@ function flattenRequests(data, translate) {
 
 function RequestsPanel() {
   const { token } = useAuth();
-  const { translate } = useLanguage();
-  const { data, loading, error, updatedAt } = useAutoRefreshingData(() => authService.listMyRequests(token), [token], LIVE_REFRESH_MILLISECONDS);
+  const { translate, lang } = useLanguage();
+  const { data, loading, error, updatedAt } = useAutoRefreshingData(() => authService.listMyRequests(token, lang), [token, lang], LIVE_REFRESH_MILLISECONDS);
   const requests = data ? flattenRequests(data, translate) : [];
   return (
     <section aria-label={translate('tab_requests')}>
@@ -79,8 +79,8 @@ function RequestsPanel() {
 }
 
 function EventsPanel() {
-  const { translate } = useLanguage();
-  const { data, loading } = useLoadedData(publicService.listEvents);
+  const { translate, lang } = useLanguage();
+  const { data, loading } = useLoadedData(() => publicService.listEvents(lang), [lang]);
   return (
     <section aria-label={translate('tab_events')}>
       {!loading && data.length === 0 && <p className="muted">{translate('no_events')}</p>}
@@ -90,8 +90,8 @@ function EventsPanel() {
 }
 
 function NewsPanel() {
-  const { translate } = useLanguage();
-  const { data, loading } = useLoadedData(publicService.listNews);
+  const { translate, lang } = useLanguage();
+  const { data, loading } = useLoadedData(() => publicService.listNews(lang), [lang]);
   return (
     <section aria-label={translate('tab_news')}>
       {!loading && data.length === 0 && <p className="muted">{translate('no_news')}</p>}

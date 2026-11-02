@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /** Charge une liste publique une fois ; en cas d'échec, la section reste simplement masquée (liste vide). */
-export function useLoadedData(loadData) {
+export function useLoadedData(loadData, dependencies = []) {
   const [state, setState] = useState({ data: [], loading: true });
   useEffect(() => {
     let isMounted = true;
@@ -10,6 +10,6 @@ export function useLoadedData(loadData) {
       .catch(() => isMounted && setState({ data: [], loading: false }));
     return () => { isMounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, dependencies);
   return state;
 }

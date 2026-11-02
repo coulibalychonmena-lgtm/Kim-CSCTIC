@@ -1,8 +1,10 @@
 import { wrapAsyncRoute } from '../utils/async-route-handler.js';
 import * as centerInformationService from '../services/center-information.service.js';
+import { requestedLanguage } from '../utils/request-language.js';
+import { publicCenterInformation } from '../services/public-content.service.js';
 
-export const listCenterInformation = wrapAsyncRoute(async (_request, response) => {
-  response.json({ data: await centerInformationService.listCenterInformation() });
+export const listCenterInformation = wrapAsyncRoute(async (request, response) => {
+  response.json({ data: await publicCenterInformation(requestedLanguage(request)) });
 });
 
 export const createCenterInformation = wrapAsyncRoute(async (request, response) => {

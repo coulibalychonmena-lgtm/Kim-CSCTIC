@@ -1,4 +1,20 @@
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1').replace(/\/$/, '');
+const LOCAL_ADDRESS_PATTERN = /localhost|127\.0\.0\.1/;
+
+/** VITE_API_URL tolérée avec ou sans « /api/v1 », avec ou sans slash final ; http:// converti en https:// sur un site https. */
+function resolveApiBaseUrl() {
+  let address = String(import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+  if (!address) return import.meta.env.PROD ? '' : 'http://localhost:4000/api/v1';
+  if (!/\/api\/v\d+$/.test(address)) address += '/api/v1';
+  if (typeof location !== 'undefined' && location.protocol === 'https:' && address.startsWith('http://') && !LOCAL_ADDRESS_PATTERN.test(address)) {
+    address = address.replace('http://', 'https://');
+  }
+  return address;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
+/** Le site déployé n'est pas relié à son serveur : VITE_API_URL absent, ou resté sur l'adresse locale. */
+export const API_CONFIGURATION_PROBLEM = import.meta.env.PROD && (!API_BASE_URL || LOCAL_ADDRESS_PATTERN.test(API_BASE_URL))
+  ? 'config' : null;
 
 export class ApiError extends Error {
   constructor(message, status, details) {
@@ -10,6 +26,7 @@ export class ApiError extends Error {
 
 /** Client HTTP unique : tous les appels du frontend passent par ici. */
 export async function sendApiRequest(path, { method = 'GET', body, token } = {}) {
+  if (API_CONFIGURATION_PROBLEM) throw new ApiError("Le site n'est pas relié à son serveur (VITE_API_URL manquant ou incorrect).", 0);
   const isFileUpload = body instanceof FormData;
   let httpResponse;
   try {

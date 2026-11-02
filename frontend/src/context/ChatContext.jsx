@@ -20,6 +20,7 @@ function getSessionId() {
 export function ChatProvider({ children }) {
   const { lang, translate } = useLanguage();
   const { isReady, reportUnreachable } = useBackendStatus();
+  const [replyLanguage, setReplyLanguage] = useState(lang);
   const [suggestions, setSuggestions] = useState([]);
   const [videos, setVideos] = useState([]);
   const [sessionId] = useState(getSessionId);
@@ -45,6 +46,7 @@ export function ChatProvider({ children }) {
     try {
       const kimReply = await chatService.sendMessage({ message, sessionId, language: lang });
       if (kimReply.needs_human) setWaitingForAgent(true);
+      if (kimReply.language) setReplyLanguage(kimReply.language);
       appendMessage({
         role: 'kim', text: kimReply.human_takeover ? translate('takeover_notice') : kimReply.reply,
         sources: kimReply.sources, images: kimReply.images, form: kimReply.form,
@@ -80,7 +82,7 @@ export function ChatProvider({ children }) {
   const showPresentation = useCallback(async () => {
     setTyping(true);
     try {
-      const slides = await publicService.listPresentation(lang);
+      const slides = await publicService.listPresentation(replyLanguage);
       if (slides.length) {
         appendMessage({ role: 'kim', text: translate('presentation_intro'), presentation: slides });
         appendMessage({ role: 'kim', text: translate('presentation_followup'), showSuggestions: true });
@@ -91,7 +93,7 @@ export function ChatProvider({ children }) {
       if (UNREACHABLE_STATUSES.includes(error.status)) reportUnreachable();
       appendMessage({ role: 'kim', text: UNREACHABLE_STATUSES.includes(error.status) ? translate('reconnecting') : error.message, error: true });
     } finally { setTyping(false); }
-  }, [lang, translate, appendMessage, reportUnreachable]);
+  }, [replyLanguage, translate, appendMessage, reportUnreachable]);
 
   const showVideos = useCallback(() => {
     appendMessage(videos.length
@@ -101,7 +103,7 @@ export function ChatProvider({ children }) {
 
   /** Une suggestion du chat (gérée dans l'administration) : message, présentation, vidéos, formulaire ou agent. */
   const runSuggestion = useCallback((suggestion) => {
-    const label = (lang === 'en' && suggestion.label_en) || (lang === 'ko' && suggestion.label_ko) || suggestion.label;
+    const { label } = suggestion;
     const echoLabel = () => appendMessage({ role: 'user', text: label });
     switch (suggestion.action_type) {
       case 'presentation': echoLabel(); showPresentation(); break;
@@ -112,7 +114,7 @@ export function ChatProvider({ children }) {
       case 'agent': send(translate('agent_request')); break;
       default: send(suggestion.message || label);
     }
-  }, [lang, translate, appendMessage, showPresentation, showVideos, openForm, send]);
+  }, [translate, appendMessage, showPresentation, showVideos, openForm, send]);
 
   /** Bouton d'une diapositive : réserver, s'inscrire, proposer un partenariat, contacter un agent. */
   const runSlideAction = useCallback((action) => {
@@ -126,10 +128,13 @@ export function ChatProvider({ children }) {
   useEffect(() => {
     if (!isReady) return undefined;
     let isMounted = true;
-    Promise.all([publicService.listChatSuggestions().catch(() => []), publicService.listVideos().catch(() => [])])
+    Promise.all([publicService.listChatSuggestions(lang).catch(() => []), publicService.listVideos(lang).catch(() => [])])
       .then(([loadedSuggestions, loadedVideos]) => { if (isMounted) { setSuggestions(loadedSuggestions); setVideos(loadedVideos); } });
     return () => { isMounted = false; };
-  }, [isReady]);
+  }, [isReady, lang]);
+
+  // Changer la langue de l'interface change aussi celle de la conversation.
+  useEffect(() => { setReplyLanguage(lang); }, [lang]);
 
   /** Formulaire envoyé : il se referme et le récapitulatif de la demande s'affiche. */
   const completeForm = useCallback((messageId, request) => {

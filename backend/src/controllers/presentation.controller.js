@@ -1,10 +1,9 @@
 import { wrapAsyncRoute } from '../utils/async-route-handler.js';
-import { SUPPORTED_LANGUAGES } from '../utils/domain-values.js';
+import { requestedLanguage } from '../utils/request-language.js';
 import * as presentationService from '../services/presentation.service.js';
 
 export const listPresentation = wrapAsyncRoute(async (request, response) => {
-  const language = SUPPORTED_LANGUAGES.includes(request.query.lang) ? request.query.lang : 'fr';
-  response.json({ data: await presentationService.listPresentation(language) });
+  response.json({ data: await presentationService.listPresentation(requestedLanguage(request)) });
 });
 
 export const listSlidesForAdmin = wrapAsyncRoute(async (_request, response) => {

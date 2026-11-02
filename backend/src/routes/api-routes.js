@@ -12,6 +12,7 @@ import * as centerInformationController from '../controllers/center-information.
 import * as openingHoursController from '../controllers/opening-hours.controller.js';
 import { receiveImageUpload } from '../middlewares/image-upload.middleware.js';
 import * as imagesController from '../controllers/images.controller.js';
+import { scheduleTranslationWarmUp } from '../services/translation-warmup.service.js';
 import * as mediaDescriptionController from '../controllers/media-description.controller.js';
 import * as presentationController from '../controllers/presentation.controller.js';
 import * as entriesControllers from '../controllers/entries.controllers.js';
@@ -28,7 +29,17 @@ const limitRequests = (windowMilliseconds, maximumRequests) => rateLimit({
   message: { error: { message: 'Trop de requêtes, réessayez dans un instant.' } },
 });
 
-router.get('/health', (_request, response) => response.json({ status: 'ok' }));
+// Chaque modification de l'administration relance, en arrière-plan, la traduction automatique du contenu public.
+router.use('/admin', (request, response, next) => {
+  if (request.method !== 'GET') response.on('finish', () => { if (response.statusCode < 400) scheduleTranslationWarmUp(); });
+  next();
+});
+
+// Sonde de réveil du frontend : lisible depuis n'importe quelle origine (aucune donnée sensible).
+router.get('/health', (_request, response) => {
+  response.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' });
+  response.json({ status: 'ok' });
+});
 
 // --- Assistant Kim (public) ---
 router.post('/chat/message', limitRequests(60_000, 30), validateBody(bodySchemas.chatMessageSchema), chatController.postChatMessage);

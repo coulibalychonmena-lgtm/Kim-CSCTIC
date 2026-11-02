@@ -1,11 +1,12 @@
 import { query } from '../config/database.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
-import { SUPPORTED_LANGUAGES } from '../utils/domain-values.js';
+import { SUPPORTED_LANGUAGES, TRANSLATION_LANGUAGES } from '../utils/domain-values.js';
 import { buildSystemPrompt } from '../prompts/kim.prompt.js';
 import { loadKnowledge, allowedSources, resolveRequestedImages, resolveRequestedForm } from './knowledge.service.js';
 import { generateKimTurn } from './gemini.service.js';
 import { isTakeoverActive } from './human-takeover.service.js';
 import { listPresentation } from './presentation.service.js';
+import { translateRows } from './translation.service.js';
 import { videosService } from './entries.service.js';
 
 const FALLBACK_REPLY_BY_LANGUAGE = {
@@ -59,13 +60,15 @@ export async function handleMessage({ message, sessionId, language }) {
     const turn = await generateKimTurn({ systemInstruction: buildSystemPrompt(knowledge), history, message });
 
     reply = String(turn.reply || '').trim();
-    replyLanguage = SUPPORTED_LANGUAGES.includes(turn.language) ? turn.language : preferredLanguage;
+    // Kim répond dans la langue de la question (quelle que soit la langue de l'interface).
+    replyLanguage = TRANSLATION_LANGUAGES.includes(turn.language) ? turn.language : preferredLanguage;
     needsHuman = Boolean(turn.needs_human);
     const allowedSourceLabels = allowedSources(knowledge);
     sources = (Array.isArray(turn.sources) ? turn.sources : [])
       .filter((source) => source && allowedSourceLabels.has(source.url))
       .map((source) => ({ label: allowedSourceLabels.get(source.url), url: source.url }));
-    images = resolveRequestedImages(knowledge, turn.images);
+    sources = await translateRows(sources, ['label'], replyLanguage);
+    images = await translateRows(resolveRequestedImages(knowledge, turn.images), ['title'], replyLanguage);
     if (!reply) throw new Error('Réponse vide de Gemini');
 
     form = resolveRequestedForm(knowledge, turn.form);

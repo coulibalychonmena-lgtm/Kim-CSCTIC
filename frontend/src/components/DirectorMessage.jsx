@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
 import { publicService } from '../services/publicService.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const DIRECTION_CATEGORY = 'direction';
 
 /** Mot du Directeur : lu en direct depuis les informations du Centre (saisies par l'administration). */
 export default function DirectorMessage() {
+  const { lang } = useLanguage();
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
-    publicService.listCenterInformation()
+    publicService.listCenterInformation(lang)
       .then((entries) => isMounted && setMessage(entries.find((entry) => entry.category === DIRECTION_CATEGORY) || null))
       .catch(() => isMounted && setMessage(null));
     return () => { isMounted = false; };
-  }, []);
+  }, [lang]);
 
   if (!message) return null;
   const paragraphs = message.content.split(/\n+/).filter(Boolean);

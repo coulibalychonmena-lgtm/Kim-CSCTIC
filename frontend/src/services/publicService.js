@@ -2,18 +2,21 @@ import { sendApiRequest } from './httpClient.js';
 
 const extractData = (responseBody) => responseBody.data;
 
+/** Ajoute ?lang= : le contenu saisi par l'administration (en français) est traduit automatiquement par le serveur. */
+const withLanguage = (path, lang) => (lang && lang !== 'fr' ? `${path}${path.includes('?') ? '&' : '?'}lang=${encodeURIComponent(lang)}` : path);
+
 export const publicService = {
-  listRooms: () => sendApiRequest('/rooms').then(extractData),
-  listActivities: () => sendApiRequest('/activities').then(extractData),
+  listRooms: (lang) => sendApiRequest(withLanguage('/rooms', lang)).then(extractData),
+  listActivities: (lang) => sendApiRequest(withLanguage('/activities', lang)).then(extractData),
   listOpeningHours: () => sendApiRequest('/opening-hours').then(extractData),
-  listChatSuggestions: () => sendApiRequest('/chat-suggestions').then(extractData),
-  listVideos: () => sendApiRequest('/videos').then(extractData),
+  listChatSuggestions: (lang) => sendApiRequest(withLanguage('/chat-suggestions', lang)).then(extractData),
+  listVideos: (lang) => sendApiRequest(withLanguage('/videos', lang)).then(extractData),
   listPresentation: (language) => sendApiRequest(`/presentation?lang=${encodeURIComponent(language)}`).then(extractData),
-  listEvents: () => sendApiRequest('/events').then(extractData),
-  listNews: () => sendApiRequest('/news').then(extractData),
+  listEvents: (lang) => sendApiRequest(withLanguage('/events', lang)).then(extractData),
+  listNews: (lang) => sendApiRequest(withLanguage('/news', lang)).then(extractData),
   getRoomAvailability: (roomId, date) =>
     sendApiRequest(`/rooms/${encodeURIComponent(roomId)}/availability?date=${encodeURIComponent(date)}`).then(extractData),
-  listCenterInformation: () => sendApiRequest('/center-information').then(extractData),
+  listCenterInformation: (lang) => sendApiRequest(withLanguage('/center-information', lang)).then(extractData),
   listSiteBackgrounds: () => sendApiRequest('/site-backgrounds').then(extractData),
   submitRoomRequest: (roomRequest, token) => sendApiRequest('/rooms/request', { method: 'POST', body: roomRequest, token }).then(extractData),
   submitActivityRegistration: (registration, token) => sendApiRequest('/activities/register', { method: 'POST', body: registration, token }).then(extractData),

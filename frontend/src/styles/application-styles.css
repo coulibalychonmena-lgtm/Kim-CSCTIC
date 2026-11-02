@@ -309,3 +309,6 @@ td.actions { white-space: nowrap; display: flex; gap: .35rem; flex-wrap: wrap; }
 .btn--outline-light { background: transparent; color: #fff; border: 2px solid #fff; }
 .btn--outline-light:hover:not(:disabled) { background: rgba(255,255,255,.18); }
 .ai-assist { margin: .25rem 0 .75rem; }
+.loading-note--problem { background: var(--red-bg); border-color: var(--red); }
+.loading-note--problem small { color: var(--ink-soft); }
+.loading-note--problem .btn { margin-top: .5rem; align-self: flex-start; }

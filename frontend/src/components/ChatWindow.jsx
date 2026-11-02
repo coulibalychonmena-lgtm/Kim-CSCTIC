@@ -9,7 +9,20 @@ import { useBackendStatus } from '../context/BackendStatusContext.jsx';
 /** Pendant le chargement, Kim est déjà là : message d'accueil visible, saisie bloquée quelques instants. */
 function LoadingNote() {
   const { translate } = useLanguage();
+  const { status, problem, retry } = useBackendStatus();
   const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  if (status === 'unreachable' && !isOffline) {
+    return (
+      <div className="loading-note loading-note--problem" role="alert">
+        <div>
+          <strong>{translate('unreachable_title')}</strong>
+          <span>{translate(`unreachable_${problem || 'network'}`)}</span>
+          <small>{translate('unreachable_still_trying')}</small>
+          <button type="button" className="btn btn--small btn--primary" onClick={retry}>{translate('retry')}</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="loading-note" role="status" aria-live="polite">
       <span className="wake__spinner wake__spinner--small" aria-hidden="true" />

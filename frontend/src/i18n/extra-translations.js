@@ -1,6 +1,7 @@
 // Textes d'interface des fonctions ajoutées : réveil de Kim, formulaires dans le chat, comptes, suivi, accueil dynamique.
 export const extraTranslations = {
   fr: {
+    unreachable_title: "Kim n'est pas joignable pour le moment", unreachable_config: "Le site n'est pas relié à son serveur (adresse VITE_API_URL manquante ou incorrecte).", unreachable_cors: "Le serveur répond mais refuse ce site : son adresse doit être ajoutée à FRONTEND_URL.", unreachable_network: 'Le serveur ne répond pas. Vérifiez votre connexion ou réessayez dans un instant.', unreachable_still_trying: 'Nouvelle tentative automatique en cours…', retry: 'Réessayer',
     cta_account_title: 'Créez votre compte', cta_account_text: 'Suivez vos demandes en direct, retrouvez votre historique, les événements et les actualités du Centre.', cta_create_account: 'Créer un compte', cta_login: 'Connexion', cta_my_space: 'Accéder à mon espace',
     greeting_question: 'Que souhaitez-vous faire ? Souhaitez-vous que je vous présente nos services ?',
     presentation_intro: "Voici nos services. Faites défiler les images et choisissez une action.", presentation_followup: 'Souhaitez-vous réserver, vous inscrire ou parler à un agent ?',
@@ -32,6 +33,7 @@ export const extraTranslations = {
     day_1: 'Lundi', day_2: 'Mardi', day_3: 'Mercredi', day_4: 'Jeudi', day_5: 'Vendredi', day_6: 'Samedi', day_7: 'Dimanche',
   },
   en: {
+    unreachable_title: 'Kim cannot be reached right now', unreachable_config: 'The site is not linked to its server (VITE_API_URL missing or incorrect).', unreachable_cors: "The server answers but refuses this site: its address must be added to FRONTEND_URL.", unreachable_network: 'The server is not answering. Check your connection or try again in a moment.', unreachable_still_trying: 'Retrying automatically…', retry: 'Try again',
     cta_account_title: 'Create your account', cta_account_text: "Follow your requests live, find your history, the Centre's events and news.", cta_create_account: 'Create an account', cta_login: 'Sign in', cta_my_space: 'Go to my space',
     greeting_question: 'What would you like to do? Would you like me to present our services?',
     presentation_intro: 'Here are our services. Scroll through the images and choose an action.', presentation_followup: 'Would you like to book, register or talk to an agent?',
@@ -63,6 +65,7 @@ export const extraTranslations = {
     day_1: 'Monday', day_2: 'Tuesday', day_3: 'Wednesday', day_4: 'Thursday', day_5: 'Friday', day_6: 'Saturday', day_7: 'Sunday',
   },
   ko: {
+    unreachable_title: '지금은 Kim에 연결할 수 없습니다', unreachable_config: '사이트가 서버에 연결되어 있지 않습니다 (VITE_API_URL 누락 또는 오류).', unreachable_cors: '서버가 응답하지만 이 사이트를 거부합니다. 주소를 FRONTEND_URL에 추가해야 합니다.', unreachable_network: '서버가 응답하지 않습니다. 연결을 확인하거나 잠시 후 다시 시도하세요.', unreachable_still_trying: '자동으로 다시 시도하는 중…', retry: '다시 시도',
     cta_account_title: '계정을 만드세요', cta_account_text: '요청 진행 상황을 실시간으로 확인하고 내역, 센터 행사와 소식을 확인하세요.', cta_create_account: '계정 만들기', cta_login: '로그인', cta_my_space: '내 공간으로 이동',
     greeting_question: '무엇을 도와드릴까요? 저희 서비스를 소개해 드릴까요?',
     presentation_intro: '저희 서비스입니다. 이미지를 넘기며 원하는 동작을 선택하세요.', presentation_followup: '예약, 등록 또는 상담원 연결을 원하시나요?',

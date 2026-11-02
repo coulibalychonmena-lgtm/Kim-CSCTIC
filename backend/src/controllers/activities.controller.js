@@ -1,9 +1,11 @@
 import { wrapAsyncRoute } from '../utils/async-route-handler.js';
 import * as activitiesService from '../services/activities.service.js';
 import { visitorIdOf } from '../middlewares/auth.middleware.js';
+import { requestedLanguage } from '../utils/request-language.js';
+import { publicActivities } from '../services/public-content.service.js';
 
-export const listActivities = wrapAsyncRoute(async (_request, response) => {
-  response.json({ data: await activitiesService.listActivities() });
+export const listActivities = wrapAsyncRoute(async (request, response) => {
+  response.json({ data: await publicActivities(requestedLanguage(request)) });
 });
 
 export const createActivity = wrapAsyncRoute(async (request, response) => {
