@@ -19,7 +19,7 @@ export default function PresentationCarousel({ slides }) {
       <div className="carousel__track" ref={trackRef} tabIndex={0}>
         {slides.map((slide) => (
           <article key={slide.id} className="carousel__slide">
-            {slide.image_url ? <img src={slide.image_url} alt={slide.title} loading="lazy" /> : <div className="carousel__noimage" aria-hidden="true" />}
+            {slide.image_url && <img src={slide.image_url} alt={slide.title} loading="lazy" />}
             <div className="carousel__body">
               <OrangeTitle as="h3">{slide.title}</OrangeTitle>
               <p>{slide.description}</p>

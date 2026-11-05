@@ -63,7 +63,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .home { max-width: 1180px; margin: 0 auto; padding: 1.25rem 1rem 3rem; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); gap: 1.5rem; align-items: start; }
 .home__chat { display: flex; flex-direction: column; gap: .75rem; }
 .home__aside { background: var(--white); border: 2px solid var(--ink); border-radius: var(--radius); padding: 1.1rem; }
-@media (max-width: 860px) { .home { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .home { grid-template-columns: minmax(0, 1fr); } }
 
 /* Chat */
 .chat { background: var(--white); border: 2px solid var(--ink); border-radius: var(--radius); display: flex; flex-direction: column; height: min(70vh, 640px); min-height: 420px; overflow: hidden; }
@@ -312,3 +312,16 @@ td.actions { white-space: nowrap; display: flex; gap: .35rem; flex-wrap: wrap; }
 .loading-note--problem { background: var(--red-bg); border-color: var(--red); }
 .loading-note--problem small { color: var(--ink-soft); }
 .loading-note--problem .btn { margin-top: .5rem; align-self: flex-start; }
+
+/* ---------- Mobile : aucune image ne doit élargir la page ---------- */
+html, body { max-width: 100%; overflow-x: clip; }
+img, video, iframe, svg { max-width: 100%; }
+img { height: auto; }
+/* Une colonne de grille « 1fr » prend la largeur naturelle de son contenu (ex. une photo de 1080 px) : minmax(0, 1fr) l'en empêche. */
+.home > *, .home__chat, .home__chat > *, .chat, .chat__log, .catalog, .catalog li, .msg, .msg__col, .bubble { min-width: 0; }
+.chat__log, .msg__col { max-width: 100%; }
+.catalog__photo { display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; }
+.space-grid, .entry-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.video-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.inline-form, .carousel { max-width: 100%; }
+.chat__input textarea, .chat__input input { min-width: 0; }

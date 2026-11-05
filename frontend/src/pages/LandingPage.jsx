@@ -77,7 +77,7 @@ export default function LandingPage() {
             <ul className="space-grid">
               {rooms.map((room) => (
                 <li key={room.id} className="space-card">
-                  {room.image_url ? <img src={room.image_url} alt={room.name} loading="lazy" /> : <div className="space-card__noimage" aria-hidden="true" />}
+                  {room.image_url && <img src={room.image_url} alt={room.name} loading="lazy" />}
                   <div className="space-card__body">
                     <OrangeTitle as="h3">{room.name}</OrangeTitle>
                     <p className="muted">{room.space_type}{room.max_capacity ? ` · ${translate('capacity')} ${room.max_capacity} ${translate('persons')}` : ''}</p>

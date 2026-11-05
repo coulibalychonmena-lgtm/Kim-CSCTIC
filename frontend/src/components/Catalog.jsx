@@ -28,9 +28,7 @@ export default function Catalog() {
             <li key={room.id}>
               {room.image_url && <img className="catalog__photo" src={room.image_url} alt={room.name} loading="lazy" />}
               <strong>{room.name}</strong>
-              <span className="muted">
-                {room.max_capacity ? `${translate('capacity')} : ${room.max_capacity}` : translate('capacity_unknown')}
-              </span>
+              {room.max_capacity && <span className="muted">{`${translate('capacity')} : ${room.max_capacity}`}</span>}
             </li>
           ))}
         </ul>
@@ -43,9 +41,7 @@ export default function Catalog() {
             <li key={activity.id}>
               {activity.image_url && <img className="catalog__photo" src={activity.image_url} alt={activity.title} loading="lazy" />}
               <strong>{activity.title}</strong>
-              <span className="muted">
-                {activity.remaining_seats === null ? translate('seats_unknown') : `${activity.remaining_seats} ${translate('seats_left')}`}
-              </span>
+              {activity.remaining_seats !== null && <span className="muted">{`${activity.remaining_seats} ${translate('seats_left')}`}</span>}
             </li>
           ))}
         </ul>

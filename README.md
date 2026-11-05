@@ -74,6 +74,8 @@ Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ v
 5. L'API gratuite s'endort après 15 min d'inactivité : le site la réveille en silence dès l'ouverture. Le chat affiche déjà l'accueil de Kim avec « Kim se charge… Veuillez patienter un instant, s'il vous plaît. » et débloque la saisie dès que l'API répond (`/api/v1/health`). Pour l'éviter, faites pinger cette adresse toutes les 10 min (UptimeRobot, gratuit).
 6. PWA : le site s'installe sur mobile et ordinateur (bouton « Installer l'application » dans l'en-tête).
 
+**Photos** : importez des photos propres (sans texte incrusté ni marges blanches) dans l'admin ; une salle sans photo s'affiche simplement sans image. Les photos sont toujours cadrées en 16/9 et ne dépassent jamais l'écran, même sur mobile.
+
 **Si Kim reste sur « se charge… »** : au bout d'environ 75 s, le chat affiche la cause. « Le site n'est pas relié à son serveur » = `VITE_API_URL` manquant ou incorrect sur `kim-web` ; `VITE_API_URL` est intégré au site au moment du build, donc après l'avoir défini il faut relancer un déploiement (*Manual Deploy → Clear build cache & deploy*). L'adresse peut être donnée avec ou sans `/api/v1`. « Le serveur refuse ce site » = ajouter l'adresse du site dans `FRONTEND_URL` de `kim-api` (les sites `*.onrender.com` sont déjà acceptés). Vérification rapide : ouvrir `https://VOTRE-API.onrender.com/api/v1/health` doit afficher `{"status":"ok"}`.
 
 **Si la connexion échoue après un changement d'adresse du frontend** : `FRONTEND_URL` de `kim-api` ne contient pas la nouvelle adresse (l'API journalise `[CORS] origine refusée`).
