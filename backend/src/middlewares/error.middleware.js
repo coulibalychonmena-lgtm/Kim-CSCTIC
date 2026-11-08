@@ -1,8 +1,10 @@
 export class AppError extends Error {
-  constructor(status, message, details = undefined) {
+  constructor(status, message, details = undefined, { code, headers } = {}) {
     super(message);
     this.status = status;
     this.details = details;
+    this.code = code;       // code lisible par l'interface (ex. LOGIN_REQUIRED)
+    this.headers = headers; // ex. { 'Retry-After': '3600' }
   }
 }
 
@@ -12,7 +14,8 @@ export const notFound = (request, _response, next) =>
 // eslint-disable-next-line no-unused-vars
 export function errorHandler(error, _request, response, _next) {
   if (error instanceof AppError) {
-    return response.status(error.status).json({ error: { message: error.message, details: error.details } });
+    if (error.headers) response.set(error.headers);
+    return response.status(error.status).json({ error: { message: error.message, details: error.details, code: error.code } });
   }
   if (error?.type === 'entity.parse.failed') {
     return response.status(400).json({ error: { message: 'Corps de requête JSON invalide.' } });

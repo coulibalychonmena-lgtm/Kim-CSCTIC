@@ -5,9 +5,13 @@ import { useFormState } from './useFormState.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { publicService } from '../../services/publicService.js';
 import { useAccountPrefill } from './useAccountPrefill.js';
+import ConsentField from './ConsentField.jsx';
 
 const AVAILABILITY_REFRESH_MILLISECONDS = 15000;
 const REQUIRED_FIELDS = ['requester_lastname', 'requester_firstname', 'email', 'phone', 'room_id', 'requested_date', 'start_time', 'end_time', 'attendees', 'purpose'];
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
+const fill = (text, values) => Object.entries(values).reduce((result, [key, value]) => result.replace(`{${key}}`, value), text);
 
 const PENDING_VALIDATION_STATUS = 'En attente de validation humaine';
 const AVAILABLE_ROOM_STATUS = 'Disponible';
@@ -17,12 +21,27 @@ export default function RoomRequestForm({ onDone, onCancel, prefill = {} }) {
   const { token, contact } = useAccountPrefill();
   const [availability, setAvailability] = useState(null);
   const [bookableRooms, setBookableRooms] = useState(null);
+  // Contrôles côté navigateur (le serveur répète les mêmes) : date, capacité de la salle, horaires d'ouverture, fin après début.
+  const validate = (values) => {
+    const errors = {};
+    const room = (bookableRooms || []).find((candidate) => candidate.id === values.room_id);
+    if (values.requested_date && values.requested_date < todayIso()) errors.requested_date = translate('err_date_past');
+    if (values.start_time && values.end_time && values.end_time <= values.start_time) errors.end_time = translate('err_time_order');
+    if (room?.max_capacity && Number(values.attendees) > room.max_capacity) errors.attendees = fill(translate('err_capacity'), { n: room.max_capacity });
+    if (Number(values.attendees) < 1) errors.attendees = translate('err_attendees_min');
+    if (availability?.closed) errors.requested_date = translate('err_closed');
+    const hours = availability?.opening_hours;
+    if (hours && values.start_time && values.end_time && (values.start_time < hours.open_time || values.end_time > hours.close_time)) {
+      errors.start_time = fill(translate('err_hours'), { open: hours.open_time, close: hours.close_time });
+    }
+    return errors;
+  };
   const formState = useFormState({
     requester_lastname: '', requester_firstname: '', email: '', phone: '', room_id: '',
-    requested_date: '', start_time: '', end_time: '', attendees: '', extra_equipment: '', purpose: '',
+    requested_date: '', start_time: '', end_time: '', attendees: '', extra_equipment: '', purpose: '', consent: false,
     ...{ requester_lastname: contact.lastname, requester_firstname: contact.firstname, email: contact.email, phone: contact.phone },
     ...prefill,
-  }, { required: REQUIRED_FIELDS });
+  }, { required: REQUIRED_FIELDS, mustBeTrue: ['consent'], validate });
   const { room_id: selectedRoomId, requested_date: selectedDate, start_time: startTime, end_time: endTime } = formState.values;
 
   // Créneaux déjà pris : relus régulièrement, car quelqu'un d'autre peut réserver pendant la saisie.
@@ -45,6 +64,9 @@ export default function RoomRequestForm({ onDone, onCancel, prefill = {} }) {
       .then((rooms) => setBookableRooms(rooms.filter((room) => room.status === AVAILABLE_ROOM_STATUS)))
       .catch(() => setBookableRooms([]));
   }, [lang]);
+
+  const selectedRoom = (bookableRooms || []).find((room) => room.id === selectedRoomId);
+  const openingHours = availability?.opening_hours;
 
   const onSubmit = formState.handleSubmit(async (values) => {
     const roomRequest = {
@@ -89,9 +111,9 @@ export default function RoomRequestForm({ onDone, onCancel, prefill = {} }) {
         {(bookableRooms || []).map((room) => <option key={room.id} value={room.id}>{room.name}</option>)}
       </FormField>
       <div className="form__row form__row--3">
-        <FormField label={translate('f_date')} type="date" required error={formState.fieldErrors.requested_date} {...formState.bindField('requested_date')} />
-        <FormField label={translate('f_start')} type="time" required error={formState.fieldErrors.start_time} {...formState.bindField('start_time')} />
-        <FormField label={translate('f_end')} type="time" required error={formState.fieldErrors.end_time} {...formState.bindField('end_time')} />
+        <FormField label={translate('f_date')} type="date" required min={todayIso()} error={formState.fieldErrors.requested_date} {...formState.bindField('requested_date')} />
+        <FormField label={translate('f_start')} type="time" required min={openingHours?.open_time} max={openingHours?.close_time} error={formState.fieldErrors.start_time} {...formState.bindField('start_time')} />
+        <FormField label={translate('f_end')} type="time" required min={openingHours?.open_time} max={openingHours?.close_time} error={formState.fieldErrors.end_time} {...formState.bindField('end_time')} />
       </div>
       {availability && (
         <p className={`slot-info${conflictingSlot ? ' slot-info--conflict' : ''}`} role="status">
@@ -99,12 +121,14 @@ export default function RoomRequestForm({ onDone, onCancel, prefill = {} }) {
             ? `${translate('slot_busy')} ${availability.busy.map((slot) => `${slot.start_time}–${slot.end_time}`).join(', ')}`
             : translate('slot_free')}
           {availability.opening_hours && ` · ${translate('slot_open')} ${availability.opening_hours.open_time}–${availability.opening_hours.close_time}`}
+          {availability.closed && <strong> {translate('err_closed')}</strong>}
           {conflictingSlot && <strong> {translate('slot_conflict')}</strong>}
         </p>
       )}
-      <FormField label={translate('f_attendees')} type="number" min="1" required error={formState.fieldErrors.attendees} {...formState.bindField('attendees')} />
+      <FormField label={translate('f_attendees')} type="number" min="1" max={selectedRoom?.max_capacity || undefined} required error={formState.fieldErrors.attendees} {...formState.bindField('attendees')} />
       <FormField label={translate('f_equipment')} error={formState.fieldErrors.extra_equipment} {...formState.bindField('extra_equipment')} />
       <FormField as="textarea" label={translate('f_purpose')} required error={formState.fieldErrors.purpose} {...formState.bindField('purpose')} />
+      <ConsentField error={formState.fieldErrors.consent} {...formState.bindCheckbox('consent')} />
       <FormActions error={formState.formError} submitting={formState.submitting} onCancel={onCancel} disabled={Boolean(conflictingSlot)} />
     </form>
   );

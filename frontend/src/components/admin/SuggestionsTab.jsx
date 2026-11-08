@@ -5,6 +5,7 @@ const ACTIONS = [
   ['message', 'Envoyer une question à Kim'], ['presentation', 'Présenter les services (diaporama)'], ['videos', 'Montrer les vidéos'],
   ['form_room', 'Ouvrir le formulaire de réservation'], ['form_register', "Ouvrir le formulaire d'inscription"],
   ['form_partner', 'Ouvrir le formulaire de partenariat'], ['agent', 'Contacter un agent'],
+  ['faq_hours', "Afficher les horaires (réponse immédiate, gratuite, hors quota)"], ['faq_contact', 'Afficher les coordonnées du Centre (réponse immédiate, gratuite, hors quota)'],
 ];
 const FIELDS = [
   { name: 'label', label: 'Texte du bouton (français)', type: 'text', required: true },

@@ -4,7 +4,8 @@ import * as chatMonitoringService from '../services/chat-monitoring.service.js';
 import * as humanTakeoverService from '../services/human-takeover.service.js';
 
 export const getDashboardStatistics = wrapAsyncRoute(async (_request, response) => {
-  response.json({ data: await dashboardStatisticsService.getDashboardStatistics() });
+  const [counts, quality] = await Promise.all([dashboardStatisticsService.getDashboardStatistics(), dashboardStatisticsService.getQualityIndicators()]);
+  response.json({ data: { ...counts, quality } });
 });
 
 export const listFlaggedChats = wrapAsyncRoute(async (_request, response) => {

@@ -12,13 +12,13 @@ import { useAutoRefreshingData } from './useAutoRefreshingData.js';
 const ACTIVITY_CATEGORIES = ['Sport', 'TIC', 'Langue', 'Culture'];
 
 const emptyActivityValues = {
-  title: '', category: '', age_min: '', age_max: '', age_range_label: '', total_seats: '', schedule: '', enrollment_conditions: '', description: '', image_url: '',
+  title: '', category: '', age_min: '', age_max: '', age_range_label: '', total_seats: '', schedule: '', duration: '', price: '', prerequisites: '', enrollment_conditions: '', description: '', image_url: '',
 };
 
 const toFormValues = (activity) => ({
   title: activity.title, category: activity.category, age_min: activity.age_min ?? '', age_max: activity.age_max ?? '',
   age_range_label: activity.age_range_label ?? '', total_seats: activity.total_seats ?? '',
-  schedule: activity.schedule ?? '', enrollment_conditions: activity.enrollment_conditions ?? '', description: activity.description ?? '', image_url: activity.image_url ?? '',
+  schedule: activity.schedule ?? '', duration: activity.duration ?? '', price: activity.price ?? '', prerequisites: activity.prerequisites ?? '', enrollment_conditions: activity.enrollment_conditions ?? '', description: activity.description ?? '', image_url: activity.image_url ?? '',
 });
 
 function ActivityEditorForm({ activity, onSaved, onCancel }) {
@@ -45,7 +45,12 @@ function ActivityEditorForm({ activity, onSaved, onCancel }) {
       </div>
       <FormField label="Public visé (texte libre, ex. « Enfants et adultes »)" error={formState.fieldErrors.age_range_label} {...formState.bindField('age_range_label')} />
       <FormField label="Jours et horaires des sessions" error={formState.fieldErrors.schedule} {...formState.bindField('schedule')} />
-      <FormField label="Conditions d'inscription (niveau, adhésion, prérequis)" error={formState.fieldErrors.enrollment_conditions} {...formState.bindField('enrollment_conditions')} />
+      <div className="form__row form__row--3">
+        <FormField label="Durée (ex. 3 mois, 2 h par séance)" error={formState.fieldErrors.duration} {...formState.bindField('duration')} />
+        <FormField label="Prix (ex. 15 000 FCFA / mois)" error={formState.fieldErrors.price} {...formState.bindField('price')} />
+        <FormField label="Prérequis (niveau, matériel)" error={formState.fieldErrors.prerequisites} {...formState.bindField('prerequisites')} />
+      </div>
+      <FormField label="Conditions d'inscription (adhésion, documents à fournir)" error={formState.fieldErrors.enrollment_conditions} {...formState.bindField('enrollment_conditions')} />
       <FormField as="textarea" label="Description et objectifs" error={formState.fieldErrors.description} {...formState.bindField('description')} />
       <ImageUploadField label="Photo de la formation" imageUrl={formState.values.image_url} onChange={(url) => formState.setFieldValue('image_url', url)} />
       <AiDescriptionAssistant imageUrl={formState.values.image_url} title={formState.values.title} kind="activity" value={formState.values.description} onChange={(text) => formState.setFieldValue('description', text)} />

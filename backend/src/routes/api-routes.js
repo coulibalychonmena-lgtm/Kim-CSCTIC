@@ -17,6 +17,9 @@ import * as mediaDescriptionController from '../controllers/media-description.co
 import * as presentationController from '../controllers/presentation.controller.js';
 import * as entriesControllers from '../controllers/entries.controllers.js';
 import * as siteBackgroundsController from '../controllers/site-backgrounds.controller.js';
+import { evaluationOnly } from '../middlewares/evaluation.middleware.js';
+import * as knowledgeGapsController from '../controllers/knowledge-gaps.controller.js';
+import * as evaluationController from '../controllers/evaluation.controller.js';
 import * as dashboardAndMonitoringController from '../controllers/dashboard-and-monitoring.controller.js';
 
 const router = Router();
@@ -42,8 +45,15 @@ router.get('/health', (_request, response) => {
 });
 
 // --- Assistant Kim (public) ---
-router.post('/chat/message', limitRequests(60_000, 30), validateBody(bodySchemas.chatMessageSchema), chatController.postChatMessage);
+router.post('/chat/message', limitRequests(60_000, 30), optionalAuthenticate, validateBody(bodySchemas.chatMessageSchema), chatController.postChatMessage);
+router.post('/chat/stream', limitRequests(60_000, 30), optionalAuthenticate, validateBody(bodySchemas.chatMessageSchema), chatController.postChatStream);
+router.post('/chat/feedback', limitRequests(60_000, 60), validateBody(bodySchemas.chatFeedbackSchema), chatController.postChatFeedback);
+router.get('/chat/session/:sessionId/history', limitRequests(60_000, 30), chatController.getChatHistory);
+router.get('/chat/faq/:topic', limitRequests(60_000, 60), optionalAuthenticate, chatController.getFaqAnswer);
 router.get('/chat/session/:sessionId/human-messages', limitRequests(60_000, 60), chatController.getHumanMessages);
+
+// --- Mode évaluation (golden dataset, RAGAS) : actif seulement si EVAL_API_KEY est défini ---
+router.post('/eval/chat', evaluationOnly, limitRequests(60_000, 60), validateBody(bodySchemas.evaluationMessageSchema), evaluationController.evaluateMessage);
 
 // --- Consultation publique : salles, formations, horaires ---
 router.get('/rooms', roomsController.listRooms);
@@ -65,8 +75,16 @@ router.post('/partnerships', limitRequests(60_000, 10), optionalAuthenticate, va
 
 // --- Authentification ---
 router.post('/auth/login', limitRequests(15 * 60_000, 20), validateBody(bodySchemas.loginSchema), authController.login);
+router.get('/auth/google/challenge', limitRequests(15 * 60_000, 60), authController.getGoogleChallenge);
+router.post('/auth/google', limitRequests(15 * 60_000, 30), validateBody(bodySchemas.googleLoginSchema), authController.loginWithGoogle);
 router.post('/auth/register', limitRequests(15 * 60_000, 15), validateBody(bodySchemas.registerSchema), authController.register);
+router.post('/auth/forgot-password', limitRequests(15 * 60_000, 5), validateBody(bodySchemas.forgotPasswordSchema), authController.requestPasswordReset);
+router.post('/auth/reset-password', limitRequests(15 * 60_000, 10), validateBody(bodySchemas.resetPasswordSchema), authController.resetPassword);
+router.post('/auth/verify-email', limitRequests(15 * 60_000, 20), validateBody(bodySchemas.verifyEmailSchema), authController.verifyEmail);
+router.post('/auth/resend-verification', limitRequests(15 * 60_000, 5), authenticate, authController.resendVerification);
 router.get('/auth/me', authenticate, authController.getCurrentUser);
+router.get('/me/export', limitRequests(15 * 60_000, 10), authenticate, authController.exportMyData);
+router.delete('/me', limitRequests(15 * 60_000, 5), authenticate, authController.deleteMyAccount);
 router.get('/me/requests', authenticate, authController.listMyRequests);
 
 // --- Administration : traitement des demandes ---
@@ -81,6 +99,9 @@ router.get('/admin/chats/session/:sessionId', adminOnly, dashboardAndMonitoringC
 router.post('/admin/chats/session/:sessionId/takeover', adminOnly, dashboardAndMonitoringController.startTakeover);
 router.delete('/admin/chats/session/:sessionId/takeover', adminOnly, dashboardAndMonitoringController.endTakeover);
 router.post('/admin/chats/session/:sessionId/reply', adminOnly, validateBody(bodySchemas.humanReplySchema), dashboardAndMonitoringController.replyToVisitor);
+router.get('/admin/unanswered-questions', adminOnly, knowledgeGapsController.listUnansweredQuestions);
+router.patch('/admin/unanswered-questions/:id', adminOnly, validateBody(bodySchemas.unansweredStatusSchema), knowledgeGapsController.updateUnansweredStatus);
+router.get('/admin/catalog-quality', adminOnly, knowledgeGapsController.getCatalogQuality);
 router.get('/admin/stats', adminOnly, dashboardAndMonitoringController.getDashboardStatistics);
 
 // --- Administration : gestion des données du Centre (aucune modification de code requise) ---

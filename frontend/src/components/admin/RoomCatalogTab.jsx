@@ -14,13 +14,13 @@ const AVAILABLE_STATUS = 'Disponible';
 const ROOM_STATUSES = [AVAILABLE_STATUS, 'En maintenance'];
 
 const emptyRoomValues = {
-  name: '', space_type: '', max_capacity: '', equipment: '', description: '', pricing: '', status: AVAILABLE_STATUS, image_url: '',
+  name: '', space_type: '', max_capacity: '', surface_m2: '', equipment: '', description: '', pricing: '', conditions: '', status: AVAILABLE_STATUS, image_url: '',
 };
 
 const toFormValues = (room) => ({
-  name: room.name, space_type: room.space_type, max_capacity: room.max_capacity ?? '',
+  name: room.name, space_type: room.space_type, max_capacity: room.max_capacity ?? '', surface_m2: room.surface_m2 ?? '',
   equipment: (room.equipment || []).join(', '), description: room.description ?? '',
-  pricing: room.pricing ?? '', status: room.status, image_url: room.image_url ?? '',
+  pricing: room.pricing ?? '', conditions: room.conditions ?? '', status: room.status, image_url: room.image_url ?? '',
 });
 
 function RoomEditorForm({ room, onSaved, onCancel }) {
@@ -43,10 +43,12 @@ function RoomEditorForm({ room, onSaved, onCancel }) {
       <div className="form__row">
         <FormField label="Type d'espace" required error={formState.fieldErrors.space_type} {...formState.bindField('space_type')} />
         <FormField label="Capacité maximale (personnes)" type="number" min="1" error={formState.fieldErrors.max_capacity} {...formState.bindField('max_capacity')} />
+        <FormField label="Surface (m²)" type="number" min="1" step="0.1" error={formState.fieldErrors.surface_m2} {...formState.bindField('surface_m2')} />
       </div>
       <FormField label="Équipements (séparés par des virgules)" error={formState.fieldErrors.equipment} {...formState.bindField('equipment')} />
       <FormField as="textarea" label="Description" error={formState.fieldErrors.description} {...formState.bindField('description')} />
-      <FormField label="Tarif indicatif ou conditions d'accès" error={formState.fieldErrors.pricing} {...formState.bindField('pricing')} />
+      <FormField label="Tarif indicatif" error={formState.fieldErrors.pricing} {...formState.bindField('pricing')} />
+      <FormField as="textarea" label="Conditions d'utilisation (caution, assurance, horaires de mise à disposition…)" error={formState.fieldErrors.conditions} {...formState.bindField('conditions')} />
       <ImageUploadField label="Photo de la salle" imageUrl={formState.values.image_url} onChange={(url) => formState.setFieldValue('image_url', url)} />
       <AiDescriptionAssistant imageUrl={formState.values.image_url} title={formState.values.name} kind="room" value={formState.values.description} onChange={(text) => formState.setFieldValue('description', text)} />
       <FormField as="select" label="Statut" error={formState.fieldErrors.status} {...formState.bindField('status')}>

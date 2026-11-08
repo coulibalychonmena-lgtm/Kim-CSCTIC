@@ -4,6 +4,8 @@ services:
     name: kim-api
     runtime: node
     rootDir: backend
+    # Offre gratuite : l'API s'endort après ~15 min (premier message jusqu'à 30 s). Avant l'ouverture au public : passer à une offre
+    # payante (plan: starter), ou garder .github/workflows/keepalive.yml actif.
     plan: free
     buildCommand: npm install
     startCommand: npm start
@@ -20,6 +22,13 @@ services:
       - { key: ADMIN_FULL_NAME, value: Administrateur }
       - { key: ADMIN_EMAIL, sync: false }
       - { key: ADMIN_PASSWORD, sync: false }
+      # Connexion avec Google (facultative) et mode évaluation (facultatif)
+      - { key: GOOGLE_CLIENT_ID, sync: false }
+      # E-mails de compte (mot de passe oublié, vérification) : API Resend
+      - { key: MAIL_API_KEY, sync: false }
+      - { key: MAIL_FROM, sync: false }
+      - { key: PUBLIC_SITE_URL, sync: false }
+      - { key: EVAL_API_KEY, sync: false }
       # URL du site statique, ex. https://kim-web.onrender.com (plusieurs valeurs séparées par des virgules ; « * » = toutes)
       - { key: FRONTEND_URL, sync: false }
 

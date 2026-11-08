@@ -21,3 +21,18 @@ export function LanguageProvider({ children }) {
 }
 
 export const useLanguage = () => useContext(LanguageContext);
+
+/**
+ * Affiche un sous-arbre (formulaire du chat, messages système) dans une autre langue que celle du sélecteur du site :
+ * celle de la conversation. Si la langue n'a pas de traductions d'interface, on garde la langue du site.
+ */
+export function LanguageOverride({ lang, children }) {
+  const parent = useLanguage();
+  const effectiveLang = lang && translations[lang] ? lang : parent.lang;
+  const value = useMemo(() => (effectiveLang === parent.lang ? parent : {
+    ...parent,
+    lang: effectiveLang,
+    translate: (key) => translations[effectiveLang]?.[key] ?? translations.fr[key] ?? key,
+  }), [effectiveLang, parent]);
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}

@@ -8,8 +8,8 @@ export async function createPartnership(partnershipData, userId = null) {
   const partnershipId = generateIdentifier();
   await query(
     `INSERT INTO PARTNERSHIP_REQUESTS
-       (ID, ORGANIZATION, CONTACT_NAME, EMAIL, PHONE, PARTNERSHIP_TYPE, DESCRIPTION, STATUS, USER_ID)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (ID, ORGANIZATION, CONTACT_NAME, EMAIL, PHONE, PARTNERSHIP_TYPE, DESCRIPTION, STATUS, USER_ID, CONSENT_AT)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       partnershipId, partnershipData.organization, partnershipData.contact_name, partnershipData.email,
       partnershipData.phone || null, partnershipData.partnership_type, partnershipData.description, NEW_PARTNERSHIP_STATUS, userId,

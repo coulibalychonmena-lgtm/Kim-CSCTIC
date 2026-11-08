@@ -1,0 +1,5 @@
+# Évaluation RAGAS de Kim. Installer dans un environnement virtuel : python -m venv .venv && pip install -r evaluation/requirements.txt
+ragas>=0.2.10
+langchain-google-genai>=2.0.0
+pandas>=2.0
+tabulate>=0.9

@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (email, password) => openSession(await authService.login(email, password)), [openSession]);
+  const loginWithGoogle = useCallback(async (credential, state) => openSession(await authService.loginWithGoogle(credential, state)), [openSession]);
   const register = useCallback(async (accountData) => openSession(await authService.register(accountData)), [openSession]);
 
   // Le client API déclenche cet événement lorsque le jeton est refusé (401).
@@ -38,8 +39,8 @@ export function AuthProvider({ children }) {
     user: session?.user || null,
     isAuthenticated: Boolean(session?.token),
     isAdministrator: session?.user?.role === ADMINISTRATOR_ROLE,
-    login, register, logout,
-  }), [session, login, register, logout]);
+    login, loginWithGoogle, register, logout,
+  }), [session, login, loginWithGoogle, register, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

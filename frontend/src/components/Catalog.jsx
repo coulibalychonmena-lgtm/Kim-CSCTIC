@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { publicService } from '../services/publicService.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { responsiveImageProps } from '../utils/image-optimization.js';
 
 /** Catalogue lu en direct depuis l'API (donc depuis la base Supabase) : ce que l'administration saisit apparaît ici. */
 export default function Catalog() {
@@ -26,7 +27,7 @@ export default function Catalog() {
         <ul>
           {catalog.rooms.map((room) => (
             <li key={room.id}>
-              {room.image_url && <img className="catalog__photo" src={room.image_url} alt={room.name} loading="lazy" />}
+              {room.image_url && <img className="catalog__photo" {...responsiveImageProps(room.image_url, '120px')} alt={room.name} loading="lazy" decoding="async" />}
               <strong>{room.name}</strong>
               {room.max_capacity && <span className="muted">{`${translate('capacity')} : ${room.max_capacity}`}</span>}
             </li>
@@ -39,7 +40,7 @@ export default function Catalog() {
         <ul>
           {catalog.activities.map((activity) => (
             <li key={activity.id}>
-              {activity.image_url && <img className="catalog__photo" src={activity.image_url} alt={activity.title} loading="lazy" />}
+              {activity.image_url && <img className="catalog__photo" {...responsiveImageProps(activity.image_url, '120px')} alt={activity.title} loading="lazy" decoding="async" />}
               <strong>{activity.title}</strong>
               {activity.remaining_seats !== null && <span className="muted">{`${activity.remaining_seats} ${translate('seats_left')}`}</span>}
             </li>

@@ -22,6 +22,20 @@ export const env = {
     apiKey: process.env.GEMINI_API_KEY,
     model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
   },
+  // Connexion avec Google (facultative) : identifiant client OAuth « Application Web ». Vide = bouton masqué.
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID?.trim() || null,
+  },
+  // E-mails de compte (réinitialisation du mot de passe, vérification) via l'API Resend : sans clé, les liens sont écrits dans les journaux du serveur.
+  mail: {
+    apiKey: process.env.MAIL_API_KEY?.trim() || null,
+    from: process.env.MAIL_FROM?.trim() || null,
+    siteUrl: (process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim().replace(/\/+$/, ''),
+  },
+  // Mode évaluation (golden dataset / RAGAS) : désactivé tant que EVAL_API_KEY n'est pas défini.
+  evaluation: {
+    apiKey: process.env.EVAL_API_KEY?.trim() || null,
+  },
 };
 
 export const DATABASE_VARIABLE_NAMES = ['DATABASE_URL'];

@@ -1,3 +1,4 @@
+import { ADULT_AGE, guardianProblem } from '../utils/booking-rules.js';
 import { query, withTransaction } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { generateIdentifier } from '../utils/identifier-generation.js';
@@ -18,7 +19,7 @@ const withRemainingSeats = (activityRow) => ({
 export async function listActivities() {
   const activityRows = await query(
     `SELECT ID, TITLE, CATEGORY, AGE_MIN, AGE_MAX, AGE_RANGE_LABEL, TOTAL_SEATS, ASSIGNED_SEATS,
-            DESCRIPTION, SCHEDULE, ENROLLMENT_CONDITIONS, IMAGE_URL
+            DESCRIPTION, SCHEDULE, DURATION, PRICE, PREREQUISITES, ENROLLMENT_CONDITIONS, IMAGE_URL
      FROM ACTIVITIES ORDER BY CATEGORY, TITLE`,
   );
   return activityRows.map(withRemainingSeats);
@@ -44,12 +45,13 @@ export async function createActivity(activityData) {
   const activityId = generateIdentifier();
   await query(
     `INSERT INTO ACTIVITIES
-       (ID, TITLE, CATEGORY, AGE_MIN, AGE_MAX, AGE_RANGE_LABEL, TOTAL_SEATS, ASSIGNED_SEATS, DESCRIPTION, SCHEDULE, ENROLLMENT_CONDITIONS, IMAGE_URL)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+       (ID, TITLE, CATEGORY, AGE_MIN, AGE_MAX, AGE_RANGE_LABEL, TOTAL_SEATS, ASSIGNED_SEATS, DESCRIPTION, SCHEDULE, DURATION, PRICE, PREREQUISITES, ENROLLMENT_CONDITIONS, IMAGE_URL)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)`,
     [
       activityId, activityData.title, activityData.category, activityData.age_min ?? null, activityData.age_max ?? null,
       activityData.age_range_label ?? null, activityData.total_seats ?? null,
       activityData.description ?? null, activityData.schedule ?? null,
+      activityData.duration ?? null, activityData.price ?? null, activityData.prerequisites ?? null,
       activityData.enrollment_conditions ?? null, activityData.image_url ?? null,
     ],
   );
@@ -82,7 +84,7 @@ export async function updateActivity(activityId, activityChanges) {
     {
       title: 'TITLE', category: 'CATEGORY', age_min: 'AGE_MIN', age_max: 'AGE_MAX',
       age_range_label: 'AGE_RANGE_LABEL', total_seats: 'TOTAL_SEATS',
-      description: 'DESCRIPTION', schedule: 'SCHEDULE',
+      description: 'DESCRIPTION', schedule: 'SCHEDULE', duration: 'DURATION', price: 'PRICE', prerequisites: 'PREREQUISITES',
       enrollment_conditions: 'ENROLLMENT_CONDITIONS', image_url: 'IMAGE_URL',
     },
     activityChanges,
@@ -116,6 +118,8 @@ export async function deleteActivity(activityId) {
 // ---------------------------------------------------------------------------
 
 export async function registerToActivity(registrationData, userId = null) {
+  const guardianIssue = guardianProblem(registrationData);
+  if (guardianIssue) throw new AppError(422, guardianIssue.message, { [guardianIssue.field]: guardianIssue.message });
   return withTransaction(async (database) => {
     // Verrou sur la formation : deux inscriptions simultanées sont traitées l'une après l'autre.
     const [activity] = await database.query(
@@ -141,12 +145,13 @@ export async function registerToActivity(registrationData, userId = null) {
     const registrationId = generateIdentifier();
     await database.query(
       `INSERT INTO ACTIVITY_REGISTRATIONS
-         (ID, LASTNAME, FIRSTNAME, AGE, EMAIL, PHONE, ACTIVITY_ID, CURRENT_LEVEL, STATUS, USER_ID)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (ID, LASTNAME, FIRSTNAME, AGE, EMAIL, PHONE, ACTIVITY_ID, CURRENT_LEVEL, STATUS, USER_ID, GUARDIAN_NAME, GUARDIAN_CONSENT, CONSENT_AT)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         registrationId, registrationData.lastname, registrationData.firstname, registrationData.age,
         registrationData.email, registrationData.phone, registrationData.activity_id,
         registrationData.current_level || null, status, userId,
+        registrationData.age < ADULT_AGE ? registrationData.guardian_name : null, registrationData.age < ADULT_AGE && registrationData.guardian_consent === true,
       ],
     );
     return { id: registrationId, status, activity_title: activity.title };
@@ -158,7 +163,7 @@ export async function listRegistrations(statusFilter) {
     `SELECT registration.ID, registration.LASTNAME, registration.FIRSTNAME, registration.AGE, registration.EMAIL,
             registration.PHONE, registration.ACTIVITY_ID, activity.TITLE AS ACTIVITY_TITLE,
             registration.CURRENT_LEVEL, registration.STATUS, registration.ADMIN_COMMENT, registration.SUBMITTED_AT,
-            activity.ENROLLMENT_CONDITIONS AS ACTIVITY_CONDITIONS
+            activity.ENROLLMENT_CONDITIONS AS ACTIVITY_CONDITIONS, registration.GUARDIAN_NAME, registration.GUARDIAN_CONSENT
      FROM ACTIVITY_REGISTRATIONS registration JOIN ACTIVITIES activity ON activity.ID = registration.ACTIVITY_ID
      WHERE (?::text IS NULL OR registration.STATUS = ?)
      ORDER BY registration.SUBMITTED_AT DESC`,

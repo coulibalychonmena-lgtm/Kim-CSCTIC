@@ -31,6 +31,7 @@ export default function ImageUploadField({ label, imageUrl, onChange }) {
       )}
       {uploadError && <p className="field__error" role="alert">{uploadError}</p>}
       <p className="muted">JPEG, PNG ou WebP, 5 Mo maximum. L'enregistrement du formulaire applique le changement.</p>
+      <p className="muted">Choisissez une vraie photo, sans texte ni capture d'écran : le site affiche déjà le nom de l'espace, et un texte incrusté dans l'image le double et reste illisible sur mobile. Une photo différente par espace.</p>
     </div>
   );
 }

@@ -30,7 +30,10 @@ function parseTranslationList(rawText, expectedLength) {
 const instructionsFor = (language) =>
   `Traduis en ${languageNameOf(language)} (langue source : français ; si un texte est déjà dans cette langue, renvoie-le tel quel). `
   + 'Conserve le sens, le ton, les retours à la ligne et la ponctuation. Ne traduis pas les noms propres de personnes, les sigles '
-  + '(CSCTICAO, TIC, PMR…), les adresses e-mail, numéros de téléphone, adresses web ni les nombres. ';
+  + '(CSCTICAO, PMR…), les adresses e-mail, numéros de téléphone, adresses web ni les nombres. '
+  + 'GLOSSAIRE : « TIC » (technologies de l\'information et de la communication) se traduit « ICT » en anglais et en coréen, jamais « TIC » '
+  + 'ni « Technology » ; en anglais, écris « Centre » (orthographe britannique), jamais « Center » : « Centre Sportif, Culturel et TIC Ivoiro-Coréen » '
+  + 'devient « Ivorian-Korean Sports, Cultural and ICT Centre ». ';
 
 async function translateBatch(texts, language) {
   const answer = await generateText(

@@ -40,57 +40,80 @@ export async function loadKnowledge() {
   };
 }
 
+const orFallback = (value, fallbackText = 'non renseigné') =>
+  (value === null || value === undefined || value === '' ? fallbackText : value);
+
+/** Descriptions d'une ligne, partagées par le prompt de Kim et par le mode évaluation (passages récupérés). */
+export const describeInformation = (information) =>
+  `${information.title} : ${information.content} `
+  + `[source: ${orFallback(information.source_label, 'CSCTICAO')} | ${orFallback(information.source_url, 'n/a')}]`;
+
+export const describeRoom = (room) =>
+  `id=${room.id} | ${room.name} (${room.space_type}) | statut: ${room.status} | capacité max: ${orFallback(room.max_capacity)} | surface: ${room.surface_m2 ? `${room.surface_m2} m²` : 'non renseignée'} | `
+  + `équipements: ${room.equipment.length ? room.equipment.join(', ') : 'non renseignés'} | `
+  + `tarif indicatif: ${orFallback(room.pricing)} | conditions d'utilisation: ${orFallback(room.conditions)} | photo: ${room.image_url ? 'disponible' : 'aucune'} | ${orFallback(room.description, '')}`;
+
+export function describeActivity(activity) {
+  const remainingSeats = activity.total_seats === null
+    ? 'quota non défini'
+    : Math.max(0, activity.total_seats - activity.assigned_seats);
+  const targetAudience = activity.age_min !== null || activity.age_max !== null
+    ? `${orFallback(activity.age_min, '?')}-${orFallback(activity.age_max, '?')} ans`
+    : orFallback(activity.age_range_label);
+  return `id=${activity.id} | ${activity.title} (${activity.category}) | public: ${targetAudience} | `
+    + `places restantes: ${remainingSeats} | jours et horaires: ${orFallback(activity.schedule)} | durée: ${orFallback(activity.duration)} | prix: ${orFallback(activity.price)} | prérequis: ${orFallback(activity.prerequisites, 'aucun renseigné')} | conditions d'inscription (niveau, adhésion…): ${orFallback(activity.enrollment_conditions, 'aucune renseignée')} | photo: ${activity.image_url ? 'disponible' : 'aucune'} | ${orFallback(activity.description, '')}`;
+}
+
+export const describeOpeningDay = (day) => `${DAY_NAMES_FROM_MONDAY[day.day_of_week]} : ${day.open_time}-${day.close_time}`;
+
+/**
+ * Passages de connaissance, un par élément, avec la source citable correspondante.
+ * Kim reçoit TOUT le catalogue dans son prompt (pas de recherche vectorielle) : le mode évaluation
+ * renvoie, pour chaque réponse, les passages des sources que Kim a citées (champ `retrieved_contexts` de RAGAS).
+ */
+export function buildContextPassages(knowledge) {
+  return [
+    ...knowledge.centerInformation.map((information) => ({ source: information.source_url || 'kim:informations', text: describeInformation(information) })),
+    ...knowledge.rooms.map((room) => ({ source: 'kim:salles', text: describeRoom(room) })),
+    ...knowledge.activities.map((activity) => ({ source: 'kim:formations', text: describeActivity(activity) })),
+    ...(knowledge.openingHours.length ? [{ source: 'kim:horaires', text: knowledge.openingHours.map(describeOpeningDay).join(' ; ') }] : []),
+  ];
+}
+
+/** Passages des sources citées ; sans source citée, aucun passage (la réponse ne s'appuie sur aucune donnée). */
+export const passagesForSources = (passages, citedSourceKeys) =>
+  passages.filter((passage) => citedSourceKeys.includes(passage.source)).map((passage) => passage.text);
+
 /** Texte lisible injecté dans le prompt système. Une rubrique vide est annoncée comme telle. */
 export function formatKnowledge(knowledge) {
-  const orFallback = (value, fallbackText = 'non renseigné') =>
-    (value === null || value === undefined || value === '' ? fallbackText : value);
   const lines = [];
 
   lines.push('## SERVICES DU CENTRE (index)');
   lines.push('- Réservation d\'une salle ou d\'un espace → formulaire « room_request »');
   lines.push('- Inscription à une formation ou activité → formulaire « activity_registration »');
   lines.push('- Proposition de partenariat → formulaire « partnership »');
-  lines.push('- Assistance humaine → needs_human = true');
+  lines.push("- Assistance humaine → user_requests_agent = true, seulement si l'utilisateur la demande ou accepte ta proposition");
   lines.push('- Événements et actualités du Centre → sections ci-dessous');
 
   lines.push('\n## INFORMATIONS OFFICIELLES DU CENTRE');
   if (!knowledge.centerInformation.length) lines.push("- aucune information enregistrée pour le moment");
-  for (const information of knowledge.centerInformation) {
-    lines.push(
-      `- ${information.title} : ${information.content} `
-      + `[source: ${orFallback(information.source_label, 'CSCTICAO')} | ${orFallback(information.source_url, 'n/a')}]`,
-    );
-  }
+  for (const information of knowledge.centerInformation) lines.push(`- ${describeInformation(information)}`);
 
   lines.push('\n## SALLES ET ESPACES (à la location)');
   if (!knowledge.rooms.length) lines.push("- aucune salle enregistrée pour le moment");
-  for (const room of knowledge.rooms) {
-    lines.push(
-      `- id=${room.id} | ${room.name} (${room.space_type}) | statut: ${room.status} | capacité max: ${orFallback(room.max_capacity)} | `
-      + `équipements: ${room.equipment.length ? room.equipment.join(', ') : 'non renseignés'} | `
-      + `tarif/conditions: ${orFallback(room.pricing)} | photo: ${room.image_url ? 'disponible' : 'aucune'} | ${orFallback(room.description, '')}`,
-    );
-  }
+  for (const room of knowledge.rooms) lines.push(`- ${describeRoom(room)}`);
 
   lines.push('\n## FORMATIONS ET ACTIVITÉS');
   if (!knowledge.activities.length) lines.push("- aucune formation enregistrée pour le moment");
-  for (const activity of knowledge.activities) {
-    const remainingSeats = activity.total_seats === null
-      ? 'quota non défini'
-      : Math.max(0, activity.total_seats - activity.assigned_seats);
-    const targetAudience = activity.age_min !== null || activity.age_max !== null
-      ? `${orFallback(activity.age_min, '?')}-${orFallback(activity.age_max, '?')} ans`
-      : orFallback(activity.age_range_label);
-    lines.push(
-      `- id=${activity.id} | ${activity.title} (${activity.category}) | public: ${targetAudience} | `
-      + `places restantes: ${remainingSeats} | horaires: ${orFallback(activity.schedule)} | conditions d'inscription (niveau, adhésion…): ${orFallback(activity.enrollment_conditions, 'aucune renseignée')} | photo: ${activity.image_url ? 'disponible' : 'aucune'} | ${orFallback(activity.description, '')}`,
-    );
-  }
+  for (const activity of knowledge.activities) lines.push(`- ${describeActivity(activity)}`);
 
   lines.push("\n## HORAIRES D'OUVERTURE");
   if (!knowledge.openingHours.length) lines.push("- horaires non renseignés pour le moment");
-  for (const day of knowledge.openingHours) {
-    lines.push(`- ${DAY_NAMES_FROM_MONDAY[day.day_of_week]} : ${day.open_time}-${day.close_time}`);
+  for (const day of knowledge.openingHours) lines.push(`- ${describeOpeningDay(day)}`);
+  if (knowledge.openingHours.length && knowledge.openingHours.length < 7) {
+    const openDays = new Set(knowledge.openingHours.map((day) => day.day_of_week));
+    const closedDays = [1, 2, 3, 4, 5, 6, 7].filter((dayNumber) => !openDays.has(dayNumber)).map((dayNumber) => DAY_NAMES_FROM_MONDAY[dayNumber]);
+    lines.push(`- ${closedDays.join(', ')} : fermé`);
   }
 
   lines.push('\n## CRÉNEAUX DÉJÀ DEMANDÉS OU VALIDÉS (indisponibles)');

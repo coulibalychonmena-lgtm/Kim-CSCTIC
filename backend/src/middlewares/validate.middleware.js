@@ -8,7 +8,7 @@ const WEB_ADDRESS_PATTERN = /^https?:\/\/\S+$/i;
 
 /**
  * Valide `data` selon `schema` : { champ: { type, required, nullable, max, min, oneOf } }.
- * Types : string, email, phone, url, int, date, time, stringArray.
+ * Types : string, email, phone, url, int, number, date, time, stringArray, chatHistory.
  * Un champ `nullable` envoyé vide ou à null est conservé comme null : c'est ainsi que
  * l'administration efface une valeur (les champs absents, eux, restent inchangés).
  */
@@ -45,6 +45,20 @@ export function validateAgainstSchema(schema, data = {}) {
           errorMessage = `Nombre entier attendu${rule.min !== undefined ? ` (min ${rule.min})` : ''}.`;
         }
         break;
+      case 'number':
+        value = Number(value);
+        if (!Number.isFinite(value) || value < (rule.min ?? -Infinity) || value > (rule.max ?? Infinity)) {
+          errorMessage = `Nombre attendu${rule.min !== undefined ? ` (min ${rule.min})` : ''}.`;
+        }
+        break;
+      case 'chatHistory':
+        // Échanges précédents [{ user_message, kim_response }] : 10 au plus (mode évaluation, conversations à plusieurs tours).
+        if (!Array.isArray(value) || value.length > 10 || !value.every((exchange) => exchange && typeof exchange.user_message === 'string'
+          && exchange.user_message.length <= 2000 && (exchange.kim_response === null || exchange.kim_response === undefined || (typeof exchange.kim_response === 'string' && exchange.kim_response.length <= 16000))
+          && (exchange.agent_offered === undefined || typeof exchange.agent_offered === 'boolean'))) {
+          errorMessage = 'Historique invalide.';
+        }
+        break;
       case 'stringArray':
         if (!Array.isArray(value) || !value.every((item) => typeof item === 'string' && item.length <= 100)) errorMessage = 'Liste de textes attendue.';
         break;
@@ -52,6 +66,7 @@ export function validateAgainstSchema(schema, data = {}) {
         if (typeof value !== 'string') errorMessage = 'Texte attendu.';
         else if (rule.max && value.length > rule.max) errorMessage = `${rule.max} caractères maximum.`;
     }
+    if (!errorMessage && rule.mustBeTrue && value !== true) errorMessage = 'Consentement obligatoire.';
     if (!errorMessage && rule.oneOf && !rule.oneOf.includes(value)) errorMessage = `Valeur autorisée : ${rule.oneOf.join(', ')}.`;
     if (errorMessage) errors[fieldName] = errorMessage; else validatedData[fieldName] = value;
   }

@@ -4,6 +4,7 @@ import { useFormState } from './useFormState.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { publicService } from '../../services/publicService.js';
 import { useAccountPrefill } from './useAccountPrefill.js';
+import ConsentField from './ConsentField.jsx';
 
 const REQUIRED_FIELDS = ['organization', 'contact_name', 'email', 'partnership_type', 'description'];
 
@@ -14,9 +15,9 @@ export default function PartnershipForm({ onDone, onCancel, prefill = {} }) {
   const { translate } = useLanguage();
   const { token, contact } = useAccountPrefill();
   const formState = useFormState({
-    organization: '', contact_name: `${contact.firstname} ${contact.lastname}`.trim(), email: contact.email, phone: contact.phone, partnership_type: '', description: '',
+    organization: '', contact_name: `${contact.firstname} ${contact.lastname}`.trim(), email: contact.email, phone: contact.phone, partnership_type: '', description: '', consent: false,
     ...prefill,
-  }, { required: REQUIRED_FIELDS });
+  }, { required: REQUIRED_FIELDS, mustBeTrue: ['consent'] });
 
   const onSubmit = formState.handleSubmit(async (values) => {
     const created = await publicService.submitPartnershipProposal(values, token);
@@ -39,6 +40,7 @@ export default function PartnershipForm({ onDone, onCancel, prefill = {} }) {
         {PARTNERSHIP_TYPES.map((type) => <option key={type} value={type}>{translate(`ptype_${type}`)}</option>)}
       </FormField>
       <FormField as="textarea" label={translate('f_desc')} required error={formState.fieldErrors.description} {...formState.bindField('description')} />
+      <ConsentField error={formState.fieldErrors.consent} {...formState.bindCheckbox('consent')} />
       <FormActions error={formState.formError} submitting={formState.submitting} onCancel={onCancel} />
     </form>
   );

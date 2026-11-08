@@ -4,6 +4,7 @@ import { generateIdentifier } from '../utils/identifier-generation.js';
 import { parseJsonValue } from '../utils/json-value-parsing.js';
 import { buildUpdateAssignments } from '../utils/sql-update-builder.js';
 import { ROOM_AVAILABILITY_STATUSES, ROOM_REQUEST_STATUS } from '../utils/domain-values.js';
+import { isoDayOfWeek, slotProblem } from '../utils/booking-rules.js';
 
 const toRoom = (roomRow) => ({ ...roomRow, equipment: parseJsonValue(roomRow.equipment, []) });
 
@@ -13,7 +14,7 @@ const toRoom = (roomRow) => ({ ...roomRow, equipment: parseJsonValue(roomRow.equ
 
 export async function listRooms() {
   const roomRows = await query(
-    `SELECT ID, NAME, SPACE_TYPE, MAX_CAPACITY, EQUIPMENT, DESCRIPTION, PRICING, STATUS, IMAGE_URL
+    `SELECT ID, NAME, SPACE_TYPE, MAX_CAPACITY, SURFACE_M2, EQUIPMENT, DESCRIPTION, PRICING, CONDITIONS, STATUS, IMAGE_URL
      FROM ROOMS ORDER BY NAME`,
   );
   return roomRows.map(toRoom);
@@ -31,11 +32,11 @@ export async function createRoom(roomData) {
   await assertRoomNameIsFree(roomData.name);
   const roomId = generateIdentifier();
   await query(
-    `INSERT INTO ROOMS (ID, NAME, SPACE_TYPE, MAX_CAPACITY, EQUIPMENT, DESCRIPTION, PRICING, STATUS, IMAGE_URL)
-     VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?)`,
+    `INSERT INTO ROOMS (ID, NAME, SPACE_TYPE, MAX_CAPACITY, SURFACE_M2, EQUIPMENT, DESCRIPTION, PRICING, CONDITIONS, STATUS, IMAGE_URL)
+     VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?)`,
     [
-      roomId, roomData.name, roomData.space_type, roomData.max_capacity ?? null,
-      JSON.stringify(roomData.equipment ?? []), roomData.description ?? null, roomData.pricing ?? null,
+      roomId, roomData.name, roomData.space_type, roomData.max_capacity ?? null, roomData.surface_m2 ?? null,
+      JSON.stringify(roomData.equipment ?? []), roomData.description ?? null, roomData.pricing ?? null, roomData.conditions ?? null,
       roomData.status ?? ROOM_AVAILABILITY_STATUSES.AVAILABLE, roomData.image_url ?? null,
     ],
   );
@@ -49,8 +50,8 @@ export async function updateRoom(roomId, roomChanges) {
 
   const { assignments, binds } = buildUpdateAssignments(
     {
-      name: 'NAME', space_type: 'SPACE_TYPE', max_capacity: 'MAX_CAPACITY', equipment: 'EQUIPMENT',
-      description: 'DESCRIPTION', pricing: 'PRICING', status: 'STATUS', image_url: 'IMAGE_URL',
+      name: 'NAME', space_type: 'SPACE_TYPE', max_capacity: 'MAX_CAPACITY', surface_m2: 'SURFACE_M2', equipment: 'EQUIPMENT',
+      description: 'DESCRIPTION', pricing: 'PRICING', conditions: 'CONDITIONS', status: 'STATUS', image_url: 'IMAGE_URL',
     },
     roomChanges,
     { arrayFields: ['equipment'] },
@@ -83,27 +84,15 @@ export async function deleteRoom(roomId) {
 // Demandes de réservation
 // ---------------------------------------------------------------------------
 
-/** Avertissements non bloquants : l'administration tranche. */
-async function buildOpeningHoursWarnings(requestedDate, startTime, endTime) {
-  const dayOfWeek = new Date(`${requestedDate}T00:00:00Z`).getUTCDay() || 7; // 1 = lundi ... 7 = dimanche
-  const [openingHours] = await query(
-    `SELECT TO_CHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_CHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME
-     FROM OPENING_HOURS WHERE DAY_OF_WEEK = ?`,
-    [dayOfWeek],
+/** Le créneau doit tenir dans les horaires d'ouverture (refus 422) ; sans horaires saisis par l'administration, on n'affirme rien. */
+async function assertSlotWithinOpeningHours(requestedDate, startTime, endTime) {
+  const [openingDay] = await query(
+    `SELECT TO_CHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_CHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME FROM OPENING_HOURS WHERE DAY_OF_WEEK = ?`,
+    [isoDayOfWeek(requestedDate)],
   );
-  if (!openingHours) {
-    const [{ configured_days: configuredDays }] = await query('SELECT COUNT(*) AS CONFIGURED_DAYS FROM OPENING_HOURS');
-    // Tant que l'administration n'a saisi aucun horaire, on n'affirme pas que le Centre est fermé.
-    if (Number(configuredDays) === 0) return [];
-    return [{ code: 'CLOSED_DAY', message: 'Le Centre est fermé ce jour-là selon ses horaires officiels.' }];
-  }
-  if (startTime < openingHours.open_time || endTime > openingHours.close_time) {
-    return [{
-      code: 'OUTSIDE_HOURS',
-      message: `Horaire hors des heures d'ouverture officielles (${openingHours.open_time}-${openingHours.close_time} ce jour-là).`,
-    }];
-  }
-  return [];
+  const [{ configured_days: configuredDays }] = await query('SELECT COUNT(*) AS CONFIGURED_DAYS FROM OPENING_HOURS');
+  const problem = slotProblem({ openingDay, anyHoursConfigured: Number(configuredDays) > 0, startTime, endTime });
+  if (problem) throw new AppError(422, problem.message, { [problem.field]: problem.message });
 }
 
 /** Une demande en attente ou validée occupe le créneau ; seule une demande refusée le libère. */
@@ -138,13 +127,15 @@ export async function getRoomAvailability(roomId, requestedDate) {
      FROM ROOM_REQUESTS WHERE ROOM_ID = ? AND REQUESTED_DATE = ?::date AND STATUS = ANY(?::text[]) ORDER BY START_TIME`,
     [roomId, requestedDate, SLOT_HOLDING_STATUSES],
   );
-  const dayOfWeek = new Date(`${requestedDate}T00:00:00Z`).getUTCDay() || 7;
+  const dayOfWeek = isoDayOfWeek(requestedDate);
   const [openingHours] = await query(
     `SELECT TO_CHAR(OPEN_TIME, 'HH24:MI') AS OPEN_TIME, TO_CHAR(CLOSE_TIME, 'HH24:MI') AS CLOSE_TIME FROM OPENING_HOURS WHERE DAY_OF_WEEK = ?`,
     [dayOfWeek],
   );
+  const [{ configured_days: configuredDays }] = await query('SELECT COUNT(*) AS CONFIGURED_DAYS FROM OPENING_HOURS');
   return {
     date: requestedDate,
+    closed: Number(configuredDays) > 0 && !openingHours, // jour sans horaires alors que le Centre en a saisi : fermé (le dimanche, par ex.)
     busy: busySlots.map((slot) => ({ start_time: slot.start_time, end_time: slot.end_time, validated: slot.status === ROOM_REQUEST_STATUS.APPROVED })),
     opening_hours: openingHours || null,
   };
@@ -159,7 +150,8 @@ export async function createRoomRequest(requestData, userId = null) {
   if (requestData.requested_date < new Date().toISOString().slice(0, 10)) {
     throw new AppError(400, 'La date souhaitée est déjà passée.', { requested_date: 'Date déjà passée.' });
   }
-  const warnings = await buildOpeningHoursWarnings(requestData.requested_date, requestData.start_time, requestData.end_time);
+  await assertSlotWithinOpeningHours(requestData.requested_date, requestData.start_time, requestData.end_time);
+  const warnings = [];
 
   return withTransaction(async (database) => {
     await lockRoomDay(database, requestData.room_id, requestData.requested_date);
@@ -183,8 +175,8 @@ export async function createRoomRequest(requestData, userId = null) {
     await database.query(
       `INSERT INTO ROOM_REQUESTS
          (ID, REQUESTER_LASTNAME, REQUESTER_FIRSTNAME, EMAIL, PHONE, ROOM_ID, REQUESTED_DATE,
-          START_TIME, END_TIME, ATTENDEES, EXTRA_EQUIPMENT, PURPOSE, STATUS, USER_ID)
-       VALUES (?, ?, ?, ?, ?, ?, ?::date, ?::time, ?::time, ?, ?::jsonb, ?, ?, ?)`,
+          START_TIME, END_TIME, ATTENDEES, EXTRA_EQUIPMENT, PURPOSE, STATUS, USER_ID, CONSENT_AT)
+       VALUES (?, ?, ?, ?, ?, ?, ?::date, ?::time, ?::time, ?, ?::jsonb, ?, ?, ?, NOW())`,
       [
         requestId, requestData.requester_lastname, requestData.requester_firstname, requestData.email, requestData.phone,
         requestData.room_id, requestData.requested_date, requestData.start_time, requestData.end_time, requestData.attendees,

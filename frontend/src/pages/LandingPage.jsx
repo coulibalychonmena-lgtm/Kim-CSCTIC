@@ -3,6 +3,7 @@ import Header from '../components/Header.jsx';
 import BackgroundSection from '../components/BackgroundSection.jsx';
 import DirectorMessage from '../components/DirectorMessage.jsx';
 import OrangeTitle from '../components/OrangeTitle.jsx';
+import SiteFooter from '../components/SiteFooter.jsx';
 import { EventsList, NewsList } from '../components/EntryLists.jsx';
 import { VideoList } from '../components/VideoPlayer.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -10,6 +11,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useSiteBackgrounds } from '../hooks/useSiteBackgrounds.js';
 import { useLoadedData } from '../hooks/useLoadedData.js';
 import { publicService } from '../services/publicService.js';
+import { responsiveImageProps } from '../utils/image-optimization.js';
 
 const REQUEST_CARDS = [
   { form: 'room', titleKey: 'card_room_title', textKey: 'card_room_text' },
@@ -17,7 +19,12 @@ const REQUEST_CARDS = [
   { form: 'partner', titleKey: 'card_partner_title', textKey: 'card_partner_text' },
 ];
 const AVAILABLE_ROOM_STATUS = 'Disponible';
-const CONTACT_CATEGORY = 'contact';
+const WEEK = [1, 2, 3, 4, 5, 6, 7];
+
+/** Une ligne de fiche : même présentation pour tous les espaces et formations, « — » quand l'information n'est pas encore saisie. */
+function FicheRow({ label, value }) {
+  return <div className="fiche__row"><dt>{label}</dt><dd>{value || '—'}</dd></div>;
+}
 
 /** Appel à créer un compte ou à se connecter (ou à ouvrir Mon espace si déjà connecté). */
 function AccountCta({ headingId }) {
@@ -54,7 +61,8 @@ export default function LandingPage() {
   const { data: news } = useLoadedData(() => publicService.listNews(lang), [lang]);
   const { data: openingHours } = useLoadedData(publicService.listOpeningHours);
   const { data: centerInformation } = useLoadedData(() => publicService.listCenterInformation(lang), [lang]);
-  const contacts = centerInformation.filter((entry) => entry.category === CONTACT_CATEGORY);
+  const contacts = centerInformation.filter((entry) => /contact/i.test(entry.category));
+  const hoursByDay = new Map(openingHours.map((day) => [Number(day.day_of_week), day]));
 
   return (
     <>
@@ -77,13 +85,19 @@ export default function LandingPage() {
             <ul className="space-grid">
               {rooms.map((room) => (
                 <li key={room.id} className="space-card">
-                  {room.image_url && <img src={room.image_url} alt={room.name} loading="lazy" />}
+                  {room.image_url && <img {...responsiveImageProps(room.image_url)} alt={room.name} loading="lazy" decoding="async" />}
                   <div className="space-card__body">
                     <OrangeTitle as="h3">{room.name}</OrangeTitle>
-                    <p className="muted">{room.space_type}{room.max_capacity ? ` · ${translate('capacity')} ${room.max_capacity} ${translate('persons')}` : ''}</p>
-                    {room.description && <p>{room.description}</p>}
+                    <p className="muted">{room.space_type}</p>
+                    {room.description && <p className="space-card__text">{room.description}</p>}
+                    <dl className="fiche">
+                      <FicheRow label={translate('capacity')} value={room.max_capacity ? `${room.max_capacity} ${translate('persons')}` : null} />
+                      <FicheRow label={translate('lbl_surface')} value={room.surface_m2 ? `${room.surface_m2} m²` : null} />
+                      <FicheRow label={translate('lbl_equipment')} value={room.equipment?.length ? room.equipment.join(', ') : null} />
+                      <FicheRow label={translate('lbl_price')} value={room.pricing} />
+                    </dl>
                     {room.status === AVAILABLE_ROOM_STATUS && (
-                      <Link to={`/chat?form=room&room=${encodeURIComponent(room.id)}`} className="btn btn--primary btn--small">{translate('room_cta')}</Link>
+                      <Link to={`/chat?form=room&room=${encodeURIComponent(room.id)}`} className="btn btn--primary btn--small card-cta">{translate('room_cta')}</Link>
                     )}
                   </div>
                 </li>
@@ -114,13 +128,18 @@ export default function LandingPage() {
             <ul className="entry-grid">
               {activities.map((activity) => (
                 <li key={activity.id} className="entry-card">
-                  {activity.image_url && <img src={activity.image_url} alt={activity.title} loading="lazy" />}
+                  {activity.image_url && <img {...responsiveImageProps(activity.image_url)} alt={activity.title} loading="lazy" decoding="async" />}
                   <div className="entry-card__body">
                     <p className="entry-card__date">{activity.category}</p>
                     <h3>{activity.title}</h3>
-                    {activity.schedule && <p className="muted">{activity.schedule}</p>}
-                    {activity.description && <p>{activity.description}</p>}
-                    <Link to={`/chat?form=register&activity=${encodeURIComponent(activity.id)}`} className="btn btn--primary btn--small">{translate('activity_cta')}</Link>
+                    {activity.description && <p className="space-card__text">{activity.description}</p>}
+                    <dl className="fiche">
+                      <FicheRow label={translate('lbl_audience')} value={activity.age_range_label} />
+                      <FicheRow label={translate('lbl_schedule')} value={activity.schedule} />
+                      <FicheRow label={translate('lbl_duration')} value={activity.duration} />
+                      <FicheRow label={translate('lbl_price')} value={activity.price} />
+                    </dl>
+                    <Link to={`/chat?form=register&activity=${encodeURIComponent(activity.id)}`} className="btn btn--primary btn--small card-cta">{translate('activity_cta')}</Link>
                   </div>
                 </li>
               ))}
@@ -160,7 +179,10 @@ export default function LandingPage() {
               <div className="assist-box">
                 <h3>{translate('assist_hours')}</h3>
                 <ul className="hours">
-                  {openingHours.map((day) => <li key={day.day_of_week}><span>{translate(`day_${day.day_of_week}`)}</span> {String(day.open_time).slice(0, 5)}–{String(day.close_time).slice(0, 5)}</li>)}
+                  {WEEK.map((dayNumber) => {
+                    const day = hoursByDay.get(dayNumber);
+                    return <li key={dayNumber}><span>{translate(`day_${dayNumber}`)}</span> {day ? `${String(day.open_time).slice(0, 5)}–${String(day.close_time).slice(0, 5)}` : translate('hours_closed')}</li>;
+                  })}
                 </ul>
               </div>
             )}
@@ -172,7 +194,7 @@ export default function LandingPage() {
         </BackgroundSection>
       </main>
       <DirectorMessage />
-      <AccountCta headingId="account-cta-bottom" />
+      <SiteFooter />
     </>
   );
 }

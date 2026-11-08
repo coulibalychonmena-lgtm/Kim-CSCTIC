@@ -22,6 +22,9 @@ export const adminService = {
     regenerate: (token, id) => sendApiRequest(`/admin/presentations/${id}/regenerate`, authorized(token, { method: 'POST' })).then(extractData),
   },
   news: crudFor('news'),
+  listUnansweredQuestions: (token, status) => sendApiRequest(`/admin/unanswered-questions${statusQuery(status)}`, authorized(token)).then(extractData),
+  updateUnansweredQuestion: (token, id, status) => sendApiRequest(`/admin/unanswered-questions/${id}`, authorized(token, { method: 'PATCH', body: { status } })).then(extractData),
+  getCatalogQuality: (token) => sendApiRequest('/admin/catalog-quality', authorized(token)).then(extractData),
   getStatistics: (token) => sendApiRequest('/admin/stats', authorized(token)).then(extractData),
 
   // --- Traitement des demandes ---

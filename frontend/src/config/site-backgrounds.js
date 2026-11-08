@@ -6,4 +6,4 @@ export const SITE_BACKGROUND_SLOTS = [
 ];
 
 /** Image fournie avec le site, utilisée tant que l'administration n'en a pas choisi une. */
-export const defaultBackgroundUrl = (slot) => `/backgrounds/${slot}.jpg`;
+export const defaultBackgroundUrl = (slot) => `/backgrounds/${slot}.webp`;

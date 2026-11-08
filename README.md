@@ -31,7 +31,7 @@ cp .env.example .env                 # VITE_API_URL=http://localhost:4000/api/v1
 npm install
 npm run dev                          # http://localhost:5173  (admin : /admin/login)
 ```
-Variables backend : `DATABASE_URL` (URI « Session pooler » de Supabase), `GEMINI_API_KEY, PORT, JWT_SECRET` + `CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET` (photos) et `ADMIN_EMAIL, ADMIN_PASSWORD` (connexion admin). Optionnelles : `GEMINI_MODEL`, `FRONTEND_URL`, `JWT_EXPIRES_IN`, `ADMIN_FULL_NAME`.
+Variables backend : `DATABASE_URL` (URI « Session pooler » de Supabase), `GEMINI_API_KEY, PORT, JWT_SECRET` + `CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET` (photos) et `ADMIN_EMAIL, ADMIN_PASSWORD` (connexion admin). Optionnelles : `GEMINI_MODEL`, `FRONTEND_URL`, `JWT_EXPIRES_IN`, `ADMIN_FULL_NAME`, `GOOGLE_CLIENT_ID` (connexion Google), `MAIL_API_KEY` + `MAIL_FROM` + `PUBLIC_SITE_URL` (e-mails de compte), `EVAL_API_KEY` (mode évaluation), `RETENTION_CHAT_MONTHS` / `RETENTION_REQUESTS_MONTHS` (purge).
 
 **Connexion administrateur :** elle ne dépend d'aucune table. Elle est définie uniquement par `ADMIN_EMAIL` et `ADMIN_PASSWORD` (10 caractères minimum) dans `.env` (ou dans les variables Render). Changer ces variables et redémarrer suffit à changer l'accès. Le serveur refuse de démarrer si elles manquent.
 
@@ -44,7 +44,7 @@ Supabase est la seule base de données : aucune donnée n'est gardée en mémoir
 - **Catalogue** : `ROOMS`, `ACTIVITIES`, `OPENING_HOURS`, `CENTER_INFORMATION`. Kim les relit à chaque message (disponibilités, places restantes, conditions d'inscription, horaires).
 - **Suivi des demandes** : `ROOM_REQUESTS`, `ACTIVITY_REGISTRATIONS`, `PARTNERSHIP_REQUESTS`. Le tableau de bord lit ces tables et se rafraîchit tout seul (15 s).
 - **Conversations** : `CHAT_LOGS` (historique, drapeau d'intervention humaine), `CHAT_TAKEOVERS` et `HUMAN_MESSAGES` (reprise en main par un agent).
-- **Scripts SQL** : `database/migrations/001` à `009`, exécutés dans l'ordre par `npm run migrate` (rejouables sans risque ; la 008 active la sécurité RLS (la 009 crée `SITE_BACKGROUNDS`, protégée de la même façon) qui bloque l'API publique Supabase, seul le backend accède aux données). Pour la démo : ouvrir *SQL Editor* dans Supabase et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
+- **Scripts SQL** : `database/migrations/001` à `016`, exécutés dans l'ordre par `npm run migrate` (rejouables sans risque ; la 008 active la sécurité RLS (la 009 crée `SITE_BACKGROUNDS`, protégée de la même façon) qui bloque l'API publique Supabase, seul le backend accède aux données). Pour la démo : ouvrir *SQL Editor* dans Supabase et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
 
 ## 3. Renseigner les données du Centre (depuis l'interface)
 Connectez-vous sur `/connexion` (même page pour tous : l'e-mail et le mot de passe `ADMIN_EMAIL` / `ADMIN_PASSWORD` ouvrent l'administration, un compte visiteur ouvre « Mon espace »), puis :
@@ -123,3 +123,19 @@ Règles métier appliquées côté serveur : date non passée, fin après début
 - Le tableau de bord est en français uniquement (le TDR impose le multilingue côté visiteur).
 - Un seul administrateur (variables `ADMIN_*`). La table `USERS` du TDR reste créée mais n'est pas utilisée.
 - Une photo remplacée ou retirée reste stockée sur Cloudinary (elle n'est plus référencée) ; supprimez-la depuis la console Cloudinary si besoin.
+
+
+## Corrections issues du rapport de recommandations (novembre 2026)
+
+Cinq livrables, chacun documenté dans `docs/corrections/` ; le tableau de suivi de chaque recommandation du rapport est dans
+`docs/corrections/00-suivi-des-recommandations.md`.
+
+| Livrable | Sujet | Document |
+|---|---|---|
+| 1 | Évaluer d'abord : golden dataset (90 questions), RAGAS, mode évaluation | `docs/corrections/01-evaluation-golden-dataset-ragas.md`, dossier `evaluation/` |
+| 2 | Escalade sur accord, quota anonyme, connexion Google | `docs/corrections/02-escalade-quota-connexion-google.md` |
+| 3 | Consentement, politique de confidentialité, comptes, formulaire de salle | `docs/corrections/03-conformite-comptes-formulaires.md` |
+| 4 | Base de connaissances, traduction, catalogue, pied de page | `docs/corrections/04-base-connaissances-traduction-contenu.md` |
+| 5 | Streaming, historique, Markdown, avis, mobile, images, indicateurs | `docs/corrections/05-performance-et-finitions.md` |
+
+Tests : `cd backend && npm test` · `node --test frontend/tests/*.test.mjs` · `node --test evaluation/tests/behavior-metrics.test.mjs evaluation/tests/runner.test.mjs`.

@@ -17,10 +17,11 @@ export const API_CONFIGURATION_PROBLEM = import.meta.env.PROD && (!API_BASE_URL 
   ? 'config' : null;
 
 export class ApiError extends Error {
-  constructor(message, status, details) {
+  constructor(message, status, details, code) {
     super(message);
     this.status = status;
     this.details = details;
+    this.code = code; // ex. LOGIN_REQUIRED (quota anonyme atteint)
   }
 }
 
@@ -48,6 +49,7 @@ export async function sendApiRequest(path, { method = 'GET', body, token } = {})
       responseBody?.error?.message || `Erreur ${httpResponse.status}`,
       httpResponse.status,
       responseBody?.error?.details,
+      responseBody?.error?.code,
     );
   }
   return responseBody;

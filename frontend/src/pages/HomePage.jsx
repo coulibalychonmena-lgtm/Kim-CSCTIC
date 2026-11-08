@@ -17,7 +17,7 @@ const FORM_BY_QUERY_VALUE = {
 
 export default function HomePage() {
   const { translate } = useLanguage();
-  const { openForm, send } = useChat();
+  const { openForm, requestAgent } = useChat();
   const { isReady } = useBackendStatus();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestHandled = useRef(false);
@@ -29,14 +29,14 @@ export default function HomePage() {
     if (!wantsAgent && !Object.hasOwn(FORM_BY_QUERY_VALUE, requestedForm)) return;
     requestHandled.current = true;
     if (wantsAgent) {
-      send(translate('agent_request'));
+      requestAgent();
     } else {
       const { type, prefillParam } = FORM_BY_QUERY_VALUE[requestedForm];
       const prefill = prefillParam && searchParams.get(prefillParam[1]) ? { [prefillParam[0]]: searchParams.get(prefillParam[1]) } : {};
       openForm(type, prefill);
     }
     setSearchParams({}, { replace: true });
-  }, [isReady, searchParams, setSearchParams, openForm, send, translate]);
+  }, [isReady, searchParams, setSearchParams, openForm, requestAgent]);
 
   return (
     <>

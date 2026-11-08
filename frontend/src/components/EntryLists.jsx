@@ -1,5 +1,6 @@
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { formatDateTime, formatDay } from '../utils/format.js';
+import { responsiveImageProps } from '../utils/image-optimization.js';
 
 export function EventsList({ events }) {
   const { lang } = useLanguage();
@@ -7,7 +8,7 @@ export function EventsList({ events }) {
     <ul className="entry-grid">
       {events.map((event) => (
         <li key={event.id} className="entry-card">
-          {event.image_url && <img src={event.image_url} alt="" loading="lazy" />}
+          {event.image_url && <img {...responsiveImageProps(event.image_url)} alt="" loading="lazy" decoding="async" />}
           <div className="entry-card__body">
             <p className="entry-card__date">{formatDateTime(event.starts_at, lang)}</p>
             <h3>{event.title}</h3>
@@ -26,7 +27,7 @@ export function NewsList({ news }) {
     <ul className="entry-grid">
       {news.map((item) => (
         <li key={item.id} className="entry-card">
-          {item.image_url && <img src={item.image_url} alt="" loading="lazy" />}
+          {item.image_url && <img {...responsiveImageProps(item.image_url)} alt="" loading="lazy" decoding="async" />}
           <div className="entry-card__body">
             <p className="entry-card__date">{formatDay(item.published_at, lang)}</p>
             <h3>{item.title}</h3>

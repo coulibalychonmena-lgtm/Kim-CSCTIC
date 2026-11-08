@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import SiteFooter from '../components/SiteFooter.jsx';
 import Header from '../components/Header.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { EventsList, NewsList } from '../components/EntryLists.jsx';
@@ -106,6 +107,48 @@ const TABS = [
   { id: 'news', labelKey: 'tab_news', Panel: NewsPanel },
 ];
 
+/** Vérification de l'e-mail et droits sur ses données : export (accès) et suppression du compte (effacement). */
+function AccountDataPanel() {
+  const { token, user, logout } = useAuth();
+  const { translate, lang } = useLanguage();
+  const navigate = useNavigate();
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const resend = async () => {
+    try { await authService.resendVerification(token, lang); setMessage(translate('verify_resent')); } catch (failure) { setError(failure.message); }
+  };
+  const exportData = async () => {
+    try {
+      const data = await authService.exportMyData(token);
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      link.download = 'mes-donnees-cscticao.json';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (failure) { setError(failure.message); }
+  };
+  const deleteAccount = async () => {
+    if (!window.confirm(translate('delete_confirm'))) return;
+    try { await authService.deleteMyAccount(token); logout(); navigate('/', { replace: true }); } catch (failure) { setError(failure.message); }
+  };
+  return (
+    <section className="card account-data" aria-label={translate('my_data_title')}>
+      <h2>{translate('my_data_title')}</h2>
+      {user?.email_verified === false && (
+        <p className="flag">{translate('verify_banner')} <button type="button" className="btn btn--ghost btn--small" onClick={resend}>{translate('verify_resend')}</button></p>
+      )}
+      {message && <p role="status">{message}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="cta-row">
+        <button type="button" className="btn btn--soft" onClick={exportData}>{translate('export_data')}</button>
+        <button type="button" className="btn btn--ghost" onClick={deleteAccount}>{translate('delete_account')}</button>
+        <Link to="/confidentialite" className="btn btn--ghost">{translate('privacy_link_title')}</Link>
+      </div>
+    </section>
+  );
+}
+
 export default function MySpacePage() {
   const { translate } = useLanguage();
   const { user, isAdministrator } = useAuth();
@@ -130,7 +173,9 @@ export default function MySpacePage() {
           ))}
         </div>
         <Panel />
+        <AccountDataPanel />
       </main>
+      <SiteFooter />
     </>
   );
 }

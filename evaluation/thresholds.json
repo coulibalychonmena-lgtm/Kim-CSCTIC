@@ -1,0 +1,24 @@
+{
+  "_comment": "Points de départ à ajuster après la première mesure (rapport, section 4.2). Les seuils RAGAS jugent la qualité des réponses ; les seuils de comportement jugent ce que fait l'interface.",
+  "ragas": {
+    "faithfulness": { "min": 0.90 },
+    "response_relevancy": { "min": 0.85 },
+    "context_precision": { "min": 0.80 },
+    "context_recall": { "min": 0.80 },
+    "factual_correctness": { "min": 0.80 },
+    "noise_sensitivity": { "max": 0.20 }
+  },
+  "behavior": {
+    "minimum_rate": {
+      "langue": 1.0,
+      "aucune_escalade_a_tort": 1.0,
+      "escalade": 1.0,
+      "formulaire": 0.9,
+      "sources": 0.85,
+      "refus_sans_fuite": 1.0,
+      "pas_de_prix_invente": 1.0,
+      "aucune_confirmation": 1.0
+    },
+    "max_p95_latency_ms": 5000
+  }
+}

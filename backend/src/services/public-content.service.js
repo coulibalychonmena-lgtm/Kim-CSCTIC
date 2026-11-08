@@ -6,10 +6,10 @@ import { translateRows } from './translation.service.js';
 
 /** Contenu public saisi par l'administration (en français), traduit automatiquement dans la langue du visiteur. */
 export const publicRooms = async (language) =>
-  translateRows(await roomsService.listRooms(), ['name', 'space_type', 'description', 'pricing', 'equipment'], language);
+  translateRows(await roomsService.listRooms(), ['name', 'space_type', 'description', 'pricing', 'conditions', 'equipment'], language);
 
 export const publicActivities = async (language) =>
-  translateRows(await activitiesService.listActivities(), ['title', 'category', 'description', 'schedule', 'enrollment_conditions', 'age_range_label'], language);
+  translateRows(await activitiesService.listActivities(), ['title', 'category', 'description', 'schedule', 'duration', 'price', 'prerequisites', 'enrollment_conditions', 'age_range_label'], language);
 
 export const publicCenterInformation = async (language) =>
   translateRows(await centerInformationService.listCenterInformation(), ['title', 'content', 'source_label'], language);

@@ -14,6 +14,7 @@ import VideosTab from '../components/admin/VideosTab.jsx';
 import SuggestionsTab from '../components/admin/SuggestionsTab.jsx';
 import EventsTab from '../components/admin/EventsTab.jsx';
 import NewsTab from '../components/admin/NewsTab.jsx';
+import KnowledgeGapsTab from '../components/admin/KnowledgeGapsTab.jsx';
 import SiteImagesTab from '../components/admin/SiteImagesTab.jsx';
 
 const DASHBOARD_TABS = [
@@ -23,6 +24,7 @@ const DASHBOARD_TABS = [
   { id: 'human-assistance', label: 'Assistance humaine', Component: HumanAssistanceTab },
   { id: 'room-catalog', label: 'Salles et espaces', Component: RoomCatalogTab },
   { id: 'activity-catalog', label: 'Formations', Component: ActivityCatalogTab },
+  { id: 'knowledge-gaps', label: 'Questions sans réponse et qualité', Component: KnowledgeGapsTab },
   { id: 'center-information', label: 'Informations et horaires', Component: CenterInformationTab },
   { id: 'presentations', label: 'Présentation Kim', Component: PresentationsTab },
   { id: 'suggestions', label: 'Suggestions du chat', Component: SuggestionsTab },

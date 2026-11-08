@@ -8,6 +8,16 @@ export const chatMessageSchema = {
   message: { type: 'string', required: true, max: 2000 },
   sessionId: { type: 'string', required: true, max: 64 },
   language: { type: 'string', oneOf: SUPPORTED_LANGUAGES },
+  intent: { type: 'string', oneOf: ['agent_request'] },   // clic sur « Parler à un agent » : accord explicite
+  deviceId: { type: 'string', max: 64 },                   // identifiant d'appareil (compté côté serveur pour le quota)
+};
+
+export const evaluationMessageSchema = {
+  message: { type: 'string', required: true, max: 2000 },
+  language: { type: 'string', oneOf: SUPPORTED_LANGUAGES },
+  history: { type: 'chatHistory' },
+  intent: { type: 'string', oneOf: ['agent_request'] },
+  contexts_mode: { type: 'string', oneOf: ['cited', 'all'] },
 };
 
 export const roomRequestSchema = {
@@ -22,6 +32,7 @@ export const roomRequestSchema = {
   attendees: { type: 'int', required: true, min: 1, max: 100000 },
   extra_equipment: { type: 'stringArray' },
   purpose: { type: 'string', required: true, max: 1000 },
+  consent: { type: 'boolean', required: true, mustBeTrue: true },   // consentement au traitement des données (loi n° 2013-450)
 };
 
 export const activityRegistrationSchema = {
@@ -32,6 +43,9 @@ export const activityRegistrationSchema = {
   phone: { type: 'phone', required: true },
   activity_id: { type: 'string', required: true, max: 36 },
   current_level: { type: 'string', max: 100 },
+  guardian_name: { type: 'string', max: 150 },          // obligatoire si le candidat a moins de 18 ans (vérifié par le service)
+  guardian_consent: { type: 'boolean' },
+  consent: { type: 'boolean', required: true, mustBeTrue: true },   // consentement au traitement des données (loi n° 2013-450)
 };
 
 export const partnershipRequestSchema = {
@@ -41,6 +55,7 @@ export const partnershipRequestSchema = {
   phone: { type: 'phone' },
   partnership_type: { type: 'string', required: true, oneOf: PARTNERSHIP_TYPES },
   description: { type: 'string', required: true, max: 4000 },
+  consent: { type: 'boolean', required: true, mustBeTrue: true },   // consentement au traitement des données (loi n° 2013-450)
 };
 
 // ---------- Administration : authentification et traitement des demandes ----------
@@ -72,9 +87,11 @@ const roomFields = (isCreation) => ({
   name: { type: 'string', required: isCreation, max: 150 },
   space_type: { type: 'string', required: isCreation, max: 80 },
   max_capacity: { type: 'int', min: 1, max: 100000, nullable: true },
+  surface_m2: { type: 'number', min: 1, max: 1000000, nullable: true },
   equipment: { type: 'stringArray' },
   description: { type: 'string', max: 2000, nullable: true },
   pricing: { type: 'string', max: 500, nullable: true },
+  conditions: { type: 'string', max: 2000, nullable: true },
   status: { type: 'string', oneOf: Object.values(ROOM_AVAILABILITY_STATUSES) },
   image_url: { type: 'url', max: 500, nullable: true },
 });
@@ -90,6 +107,9 @@ const activityFields = (isCreation) => ({
   total_seats: { type: 'int', min: 0, max: 100000, nullable: true },
   description: { type: 'string', max: 4000, nullable: true },
   schedule: { type: 'string', max: 500, nullable: true },
+  duration: { type: 'string', max: 100, nullable: true },
+  price: { type: 'string', max: 100, nullable: true },
+  prerequisites: { type: 'string', max: 1000, nullable: true },
   enrollment_conditions: { type: 'string', max: 1000, nullable: true },
   image_url: { type: 'url', max: 500, nullable: true },
 });
@@ -116,11 +136,42 @@ export const siteBackgroundSchema = {
   image_url: { type: 'url', max: 500, nullable: true },
 };
 
+export const chatFeedbackSchema = {
+  messageId: { type: 'string', required: true, max: 64 },
+  sessionId: { type: 'string', required: true, max: 64 },
+  rating: { type: 'int', required: true, min: -1, max: 1 },
+};
+
+export const unansweredStatusSchema = {
+  status: { type: 'string', required: true, oneOf: ['À compléter', 'Traité'] },
+};
+
+export const googleLoginSchema = {
+  credential: { type: 'string', required: true, max: 4000 },
+  state: { type: 'string', required: true, max: 1000 },
+};
+
 export const registerSchema = {
   full_name: { type: 'string', required: true, max: 150 },
   email: { type: 'email', required: true },
   phone: { type: 'phone' },
   password: { type: 'string', required: true, max: 200 },
+  consent: { type: 'boolean', required: true, mustBeTrue: true },   // consentement au traitement des données (loi n° 2013-450)
+  language: { type: 'string', oneOf: SUPPORTED_LANGUAGES },
+};
+
+export const forgotPasswordSchema = {
+  email: { type: 'email', required: true },
+  language: { type: 'string', oneOf: SUPPORTED_LANGUAGES },
+};
+
+export const resetPasswordSchema = {
+  token: { type: 'string', required: true, max: 200 },
+  password: { type: 'string', required: true, max: 200 },
+};
+
+export const verifyEmailSchema = {
+  token: { type: 'string', required: true, max: 200 },
 };
 
 const eventFields = (isCreation) => ({
@@ -171,7 +222,7 @@ const videoFields = (isCreation) => ({
 export const videoCreationSchema = videoFields(true);
 export const videoModificationSchema = videoFields(false);
 
-const SUGGESTION_ACTIONS = ['message', 'presentation', 'videos', 'form_room', 'form_register', 'form_partner', 'agent'];
+const SUGGESTION_ACTIONS = ['message', 'presentation', 'videos', 'form_room', 'form_register', 'form_partner', 'agent', 'faq_hours', 'faq_contact'];
 const suggestionFields = (isCreation) => ({
   label: { type: 'string', required: isCreation, max: 120 },
   label_en: { type: 'string', max: 120, nullable: true },

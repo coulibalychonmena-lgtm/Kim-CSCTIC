@@ -1,0 +1,41 @@
+# Évaluation automatique de Kim : lancée à la main, ou à chaque changement du prompt, des connaissances ou de l'évaluation.
+# Elle échoue (et bloque donc la fusion si la branche est protégée) quand un seuil de thresholds.json n'est pas atteint.
+# Secrets à créer dans GitHub : EVAL_API_URL (https://kim-api.onrender.com/api/v1), EVAL_API_KEY, GOOGLE_API_KEY (juge RAGAS).
+name: Évaluation de Kim
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'backend/src/prompts/**'
+      - 'backend/src/services/knowledge.service.js'
+      - 'backend/src/services/kim-turn.service.js'
+      - 'backend/src/utils/escalation-policy.js'
+      - 'evaluation/**'
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Tests de l'évaluation
+        run: node --test evaluation/tests/behavior-metrics.test.mjs evaluation/tests/runner.test.mjs
+      - name: Comportement (dev puis holdout)
+        env:
+          EVAL_API_URL: ${{ secrets.EVAL_API_URL }}
+          EVAL_API_KEY: ${{ secrets.EVAL_API_KEY }}
+        run: |
+          node evaluation/run-evaluation.mjs --split dev --label "ci-dev" --delay 3000
+          node evaluation/run-evaluation.mjs --split holdout --label "ci-holdout" --delay 3000
+      - name: RAGAS
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          pip install -r evaluation/requirements.txt
+          python evaluation/ragas_eval.py "$(ls -t evaluation/results/run-*.jsonl | sed -n 2p)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: resultats-evaluation, path: evaluation/results }

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import OrangeTitle from './OrangeTitle.jsx';
+import { responsiveImageProps } from '../utils/image-optimization.js';
 
 /** Images à faire défiler, chacune avec sa description et ses boutons d'action (réserver, s'inscrire, contacter…). */
 export default function PresentationCarousel({ slides }) {
@@ -19,7 +20,7 @@ export default function PresentationCarousel({ slides }) {
       <div className="carousel__track" ref={trackRef} tabIndex={0}>
         {slides.map((slide) => (
           <article key={slide.id} className="carousel__slide">
-            {slide.image_url && <img src={slide.image_url} alt={slide.title} loading="lazy" />}
+            {slide.image_url && <img {...responsiveImageProps(slide.image_url, '(max-width: 640px) 90vw, 480px')} alt={slide.title} loading="lazy" decoding="async" />}
             <div className="carousel__body">
               <OrangeTitle as="h3">{slide.title}</OrangeTitle>
               <p>{slide.description}</p>

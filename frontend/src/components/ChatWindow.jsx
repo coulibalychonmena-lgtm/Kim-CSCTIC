@@ -36,7 +36,7 @@ function LoadingNote() {
 
 export default function ChatWindow() {
   const { translate } = useLanguage();
-  const { messages, typing, send } = useChat();
+  const { messages, typing, send, anonymousRemaining, startNewConversation } = useChat();
   const { isReady } = useBackendStatus();
   const [draft, setDraft] = useState('');
   const endRef = useRef(null);
@@ -56,6 +56,11 @@ export default function ChatWindow() {
 
   return (
     <section className="chat" aria-label="Kim">
+      {messages.length > 0 && (
+        <div className="chat__tools">
+          <button type="button" className="btn btn--ghost btn--small" onClick={startNewConversation} disabled={typing}>{translate('new_conversation')}</button>
+        </div>
+      )}
       <div className="chat__log" role="log" aria-live="polite">
         <div className="msg msg--kim">
           <span className="avatar" aria-hidden="true">김</span>
@@ -69,10 +74,13 @@ export default function ChatWindow() {
           </div>
         </div>
         {messages.map((message) => <MessageBubble key={message.id} message={message} />)}
-        {typing && <TypingIndicator />}
+        {typing && !messages.some((message) => message.streaming) && <TypingIndicator />}
         {!isReady && <LoadingNote />}
         <div ref={endRef} />
       </div>
+      {anonymousRemaining !== null && anonymousRemaining <= 2 && (
+        <p className="chat__quota-hint" role="status">{translate('remaining_questions')} {anonymousRemaining}</p>
+      )}
       <form className="chat__input" onSubmit={submit}>
         <label htmlFor="chat-draft" className="sr-only">{translate('placeholder')}</label>
         <textarea
