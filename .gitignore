@@ -5,3 +5,8 @@ dist/
 !.env.example
 *.log
 .DS_Store
+
+# Fichiers de référencement générés au build (frontend/scripts/generate-seo-files.mjs)
+frontend/public/robots.txt
+frontend/public/sitemap.xml
+frontend/public/llms.txt

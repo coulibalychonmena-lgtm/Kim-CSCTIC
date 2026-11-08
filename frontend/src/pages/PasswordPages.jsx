@@ -5,6 +5,7 @@ import FormField from '../components/FormField.jsx';
 import { useFormState } from '../components/forms/useFormState.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { authService } from '../services/authService.js';
+import Seo from '../components/Seo.jsx';
 
 const MINIMUM_PASSWORD_LENGTH = 8;
 
@@ -12,6 +13,7 @@ function Shell({ title, children }) {
   const { translate } = useLanguage();
   return (
     <>
+      <Seo page="private" path="/compte" noindex />
       <Header />
       <main className="login">
         <div className="login__card">

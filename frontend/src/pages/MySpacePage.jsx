@@ -11,6 +11,7 @@ import { publicService } from '../services/publicService.js';
 import { useAutoRefreshingData } from '../components/admin/useAutoRefreshingData.js';
 import { useLoadedData } from '../hooks/useLoadedData.js';
 import { formatDateTime } from '../utils/format.js';
+import Seo from '../components/Seo.jsx';
 
 const LIVE_REFRESH_MILLISECONDS = 8000;
 const STATUS_KEY = {
@@ -156,6 +157,7 @@ export default function MySpacePage() {
   const { Panel } = TABS.find((tab) => tab.id === activeTabId);
   return (
     <>
+      <Seo page="private" path="/mon-espace" noindex />
       <Header />
       <main className="space">
         <h1>{translate('space_title')}</h1>

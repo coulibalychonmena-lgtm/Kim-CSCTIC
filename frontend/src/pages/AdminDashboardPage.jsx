@@ -16,6 +16,7 @@ import EventsTab from '../components/admin/EventsTab.jsx';
 import NewsTab from '../components/admin/NewsTab.jsx';
 import KnowledgeGapsTab from '../components/admin/KnowledgeGapsTab.jsx';
 import SiteImagesTab from '../components/admin/SiteImagesTab.jsx';
+import Seo from '../components/Seo.jsx';
 
 const DASHBOARD_TABS = [
   { id: 'room-requests', label: 'Réservations de salles', Component: RoomRequestsTab },
@@ -41,6 +42,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="admin">
+      <Seo page="private" path="/admin" noindex />
       <header className="admin__head">
         <div>
           <h1>Tableau de bord</h1>

@@ -15,7 +15,7 @@ export default function Header() {
             className="brand__logo"
             src="/logo.png"
             alt=""
-            width="73"
+            width="75"
             height="44"
             onError={(event) => { event.currentTarget.style.display = 'none'; }}
           />

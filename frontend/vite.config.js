@@ -1,10 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { createSeoHtmlPlugin } from './scripts/seo-html-plugin.mjs';
+
+// --- Référencement : adresse publique et vérifications de propriété, injectées dans index.html au build ---
+const siteUrl = (process.env.VITE_SITE_URL || '').trim().replace(/\/+$/, '');
+const googleVerification = (process.env.VITE_GOOGLE_SITE_VERIFICATION || '').trim();
+const bingVerification = (process.env.VITE_BING_SITE_VERIFICATION || '').trim();
+if (!siteUrl) console.warn('[SEO] VITE_SITE_URL absent : canonique, Open Graph et JSON-LD statiques retirés de index.html, sitemap non généré.');
+
+const seoHtml = () => createSeoHtmlPlugin({ siteUrl, googleVerification, bingVerification });
 
 export default defineConfig({
   plugins: [
     react(),
+    seoHtml(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png', 'icons/apple-touch-icon.png'],
@@ -23,6 +33,8 @@ export default defineConfig({
       workbox: {
         // Les pages sont toutes servies par index.html : actualiser ou ouvrir un lien direct ne donne jamais de 404.
         navigateFallback: '/index.html',
+        // Les fichiers destinés aux robots ne doivent jamais être remplacés par l'application par le service worker.
+        navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/, /^\/llms\.txt$/, /^\/og-image\.jpg$/],
         globPatterns: ['**/*.{js,css,html,png,jpg,svg,ico,webmanifest}'],
         runtimeCaching: [
           { urlPattern: ({ url }) => url.origin === 'https://res.cloudinary.com', handler: 'StaleWhileRevalidate', options: { cacheName: 'cloudinary-images', expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 } } },

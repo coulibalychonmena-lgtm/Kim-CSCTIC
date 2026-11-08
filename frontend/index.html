@@ -8,14 +8,58 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Kim CSCTICAO" />
-    <meta name="description" content="Kim, assistant virtuel du Centre Sportif, Culturel et des TIC Ivoiro-Coréen Alassane Ouattara" />
-    <title>Kim — CSCTICAO</title>
+
+    <!-- Référencement : valeurs par défaut lisibles sans JavaScript (aperçus de partage, robots) ; le composant <Seo /> les remplace par page et par langue. -->
+    <title>CSCTICAO — Centre Sportif, Culturel et TIC Ivoiro-Coréen Alassane Ouattara</title>
+    <meta name="description" content="Salles à louer, formations (Taekwondo, informatique, langue coréenne) et partenariats au Centre Sportif, Culturel et TIC Ivoiro-Coréen Alassane Ouattara. Kim, l'assistante virtuelle, vous répond." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="author" content="CSCTICAO" />
+    <!-- Les lignes marquées data-needs-site-url exigent VITE_SITE_URL (adresse publique) : sans elle, elles sont retirées au build. -->
+    <link rel="canonical" href="__SITE_URL__/" data-needs-site-url />
+    <meta property="og:type" content="website" data-needs-site-url />
+    <meta property="og:site_name" content="CSCTICAO" data-needs-site-url />
+    <meta property="og:title" content="CSCTICAO — Centre Sportif, Culturel et TIC Ivoiro-Coréen Alassane Ouattara" data-needs-site-url />
+    <meta property="og:description" content="Salles à louer, formations et partenariats. Kim, l'assistante virtuelle du Centre, vous répond en français, anglais et coréen." data-needs-site-url />
+    <meta property="og:url" content="__SITE_URL__/" data-needs-site-url />
+    <meta property="og:image" content="__SITE_URL__/og-image.jpg" data-needs-site-url />
+    <meta property="og:image:width" content="1200" data-needs-site-url />
+    <meta property="og:image:height" content="630" data-needs-site-url />
+    <meta property="og:locale" content="fr_CI" data-needs-site-url />
+    <meta name="twitter:card" content="summary_large_image" data-needs-site-url />
+    <meta name="twitter:image" content="__SITE_URL__/og-image.jpg" data-needs-site-url />
+    <!-- Vérification de propriété (Search Console, Bing) : VITE_GOOGLE_SITE_VERIFICATION / VITE_BING_SITE_VERIFICATION -->
+    <meta name="google-site-verification" content="__GOOGLE_VERIFICATION__" data-needs-google-verification />
+    <meta name="msvalidate.01" content="__BING_VERIFICATION__" data-needs-bing-verification />
+    <script type="application/ld+json" data-needs-site-url>
+      {"@context":"https://schema.org","@graph":[
+        {"@type":"SportsActivityLocation","@id":"__SITE_URL__/#centre","name":"Centre Sportif, Culturel et des TIC Ivoiro-Coréen Alassane Ouattara","alternateName":"CSCTICAO","url":"__SITE_URL__/","logo":"__SITE_URL__/logo.png","image":"__SITE_URL__/og-image.jpg","address":{"@type":"PostalAddress","addressCountry":"CI"}},
+        {"@type":"WebSite","@id":"__SITE_URL__/#site","url":"__SITE_URL__/","name":"CSCTICAO","inLanguage":["fr","en","ko"],"publisher":{"@id":"__SITE_URL__/#centre"}}
+      ]}
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Contenu lisible par les robots et les navigateurs sans JavaScript ; React le remplace dès le chargement. -->
+      <header><strong>CSCTICAO</strong></header>
+      <main>
+        <h1>Centre Sportif, Culturel et des TIC Ivoiro-Coréen Alassane Ouattara</h1>
+        <p>Le CSCTICAO est un centre de coopération entre la Côte d'Ivoire et la République de Corée : sport, culture et technologies de l'information et de la communication.</p>
+        <h2>Nos services</h2>
+        <ul>
+          <li>Location de salles et d'espaces : gymnase, salles de formation, bibliothèque…</li>
+          <li>Formations : Taekwondo, informatique et bureautique, développement web, langue et culture coréennes.</li>
+          <li>Partenariats techniques, financiers, événementiels et pédagogiques.</li>
+          <li>Kim, l'assistante virtuelle, répond en français, en anglais et en coréen.</li>
+        </ul>
+        <p><a href="/chat">Poser une question à Kim</a> · <a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Politique de confidentialité</a></p>
+      </main>
+    </div>
+    <noscript>Ce site nécessite JavaScript pour afficher les salles, les formations et l'assistante Kim.</noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

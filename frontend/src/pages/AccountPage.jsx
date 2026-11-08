@@ -8,6 +8,7 @@ import { useFormState } from '../components/forms/useFormState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useBackendStatus } from '../context/BackendStatusContext.jsx';
+import Seo from '../components/Seo.jsx';
 
 /** Connexion et création de compte sur la même page : le rôle du compte choisit l'espace affiché ensuite. */
 export default function AccountPage() {
@@ -36,6 +37,7 @@ export default function AccountPage() {
 
   return (
     <>
+      <Seo page="private" path="/connexion" noindex />
       <Header />
       <main className="login">
         <form className="login__card" onSubmit={onSubmit} noValidate>

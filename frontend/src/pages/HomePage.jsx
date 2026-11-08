@@ -7,6 +7,7 @@ import Catalog from '../components/Catalog.jsx';
 import { useChat } from '../context/ChatContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useBackendStatus } from '../context/BackendStatusContext.jsx';
+import Seo from '../components/Seo.jsx';
 
 // Liens de la page d'accueil : /chat?form=room&room=ID, ?form=register&activity=ID, ?form=partner, ?agent=1
 const FORM_BY_QUERY_VALUE = {
@@ -41,6 +42,7 @@ export default function HomePage() {
   return (
     <>
       <a className="skip" href="#main">{translate('skip')}</a>
+      <Seo page="chat" path="/chat" noindex />
       <Header />
       <main id="main" className="home">
         <div className="home__chat">

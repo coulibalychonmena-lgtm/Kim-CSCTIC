@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/create-spa-fallback.mjs",
+    "build": "node scripts/generate-seo-files.mjs && vite build && node scripts/create-spa-fallback.mjs",
+    "test": "node --test tests/*.test.mjs",
     "start": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
     "preview": "vite preview"
   },

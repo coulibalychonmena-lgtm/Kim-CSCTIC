@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { publicService } from '../services/publicService.js';
 import { useLoadedData } from '../hooks/useLoadedData.js';
 import { LEGAL_CONTENT } from '../i18n/legal-content.js';
+import Seo from '../components/Seo.jsx';
 
 const LAST_UPDATE = '2026-11-07';
 
@@ -15,6 +16,7 @@ export default function LegalPage({ kind }) {
   const contacts = (information || []).filter((entry) => /contact/i.test(entry.category));
   return (
     <>
+      <Seo page={kind} path={kind === 'privacy' ? '/confidentialite' : '/mentions-legales'} />
       <Header />
       <main className="legal">
         <h1>{content.title}</h1>

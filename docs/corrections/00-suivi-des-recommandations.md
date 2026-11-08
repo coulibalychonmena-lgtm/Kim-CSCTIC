@@ -65,13 +65,17 @@ Légende : **Fait** = corrigé dans le code et testé hors ligne · **Fait + act
 3. Semaines 2 et 3 : fiches, formulaires localisés, streaming, rejouer l'évaluation → livrables 4 et 5.
 4. Ensuite : évaluation à chaque déploiement, indicateurs de production, photos, pied de page → CI + tableau de bord + livrable 4.
 
+## Ajout demandé : référencement (hors rapport)
+Code livré (balises par page et langue, hreflang, JSON-LD, sitemap, robots, aperçu de partage, noindex des pages privées, API exclue) : voir `docs/corrections/06-referencement-seo.md`. **Action : définir `VITE_SITE_URL`, déclarer le site dans Search Console / Bing, créer la fiche Google Business Profile.**
+
 ## À faire de votre côté (récapitulatif)
 1. `cd backend && npm run migrate` (migrations 013 à 016).
 2. Variables Render : `GOOGLE_CLIENT_ID`, `MAIL_API_KEY`, `MAIL_FROM`, `PUBLIC_SITE_URL`, `EVAL_API_KEY` ; secrets GitHub pour l'évaluation et le keep-alive.
 3. Remplir les modèles `docs/corrections/modeles/*.csv`, puis saisir les données dans l'administration ; remplacer les captures par de vraies photos.
 4. Faire valider les références du golden dataset par le Centre ; lancer la ligne de base puis rejouer.
-5. Faire relire la politique de confidentialité et les mentions légales ; vérifier l'obligation ARTCI.
-6. Tester dans un navigateur réel (streaming, mobile, Google, e-mails) : ces parcours n'ont pas pu être exécutés dans l'environnement de travail.
+5. Définir `VITE_SITE_URL` (nom de domaine définitif) puis suivre le guide de référencement.
+6. Faire relire la politique de confidentialité et les mentions légales ; vérifier l'obligation ARTCI.
+7. Tester dans un navigateur réel (streaming, mobile, Google, e-mails) : ces parcours n'ont pas pu être exécutés dans l'environnement de travail.
 
 ## Vérifications effectuées dans l'environnement de travail
 - Backend : 40 tests (escalade, quota, Google, FAQ, jetons, règles de réservation, qualité du catalogue, flux JSON, indicateurs) ; syntaxe de tous les fichiers vérifiée.

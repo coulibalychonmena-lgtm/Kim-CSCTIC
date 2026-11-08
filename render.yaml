@@ -44,7 +44,22 @@ services:
     headers:
       - { path: /sw.js, name: Cache-Control, value: no-cache }
       - { path: /index.html, name: Cache-Control, value: no-cache }
+      # Fichiers à empreinte (Vite) et images : cache longue durée (meilleure vitesse, donc meilleur classement)
+      - { path: /assets/*, name: Cache-Control, value: "public, max-age=31536000, immutable" }
+      - { path: /backgrounds/*, name: Cache-Control, value: "public, max-age=2592000" }
+      - { path: /icons/*, name: Cache-Control, value: "public, max-age=2592000" }
+      - { path: /og-image.jpg, name: Cache-Control, value: "public, max-age=86400" }
+      - { path: /sitemap.xml, name: Cache-Control, value: "public, max-age=3600" }
+      # Sécurité (signal de confiance, et protection des visiteurs)
+      - { path: /*, name: X-Content-Type-Options, value: nosniff }
+      - { path: /*, name: Referrer-Policy, value: strict-origin-when-cross-origin }
+      - { path: /*, name: X-Frame-Options, value: SAMEORIGIN }
     envVars:
       - { key: NODE_VERSION, value: 20 }
       # URL de l'API incluant /api/v1, ex. https://kim-api.onrender.com/api/v1
       - { key: VITE_API_URL, sync: false }
+      # Référencement : adresse publique du site (sans slash final), ex. https://kim-web.onrender.com ou votre nom de domaine
+      - { key: VITE_SITE_URL, sync: false }
+      # Codes de vérification de propriété (Google Search Console / Bing Webmaster Tools), facultatifs
+      - { key: VITE_GOOGLE_SITE_VERIFICATION, sync: false }
+      - { key: VITE_BING_SITE_VERIFICATION, sync: false }

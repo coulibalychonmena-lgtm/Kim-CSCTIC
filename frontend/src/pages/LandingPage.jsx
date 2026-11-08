@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import BackgroundSection from '../components/BackgroundSection.jsx';
 import DirectorMessage from '../components/DirectorMessage.jsx';
 import OrangeTitle from '../components/OrangeTitle.jsx';
+import Seo from '../components/Seo.jsx';
 import SiteFooter from '../components/SiteFooter.jsx';
 import { EventsList, NewsList } from '../components/EntryLists.jsx';
 import { VideoList } from '../components/VideoPlayer.jsx';
@@ -64,8 +66,11 @@ export default function LandingPage() {
   const contacts = centerInformation.filter((entry) => /contact/i.test(entry.category));
   const hoursByDay = new Map(openingHours.map((day) => [Number(day.day_of_week), day]));
 
+  const structuredData = useMemo(() => ({ information: centerInformation, openingHours, events }), [centerInformation, openingHours, events]);
+
   return (
     <>
+      <Seo page="home" path="/" structuredData={structuredData} />
       <a className="skip" href="#main">{translate('skip')}</a>
       <Header />
       <main id="main">

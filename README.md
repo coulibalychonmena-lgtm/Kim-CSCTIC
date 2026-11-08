@@ -69,7 +69,7 @@ Les changements sont immédiatement visibles des visiteurs et de Kim. Un champ v
 ## 4. Déploiement (GitHub + Render)
 1. Poussez ce dossier sur GitHub (branche `main`).
 2. Site statique créé à la main : *Root Directory* `frontend`, *Build Command* `npm install && npm run build`, *Publish Directory* `dist` (l'outil de build est une dépendance normale : Render n'installe pas les devDependencies). Ou Render → **New → Blueprint** : `render.yaml` crée `kim-api` (service web) et `kim-web` (**site statique**, jamais endormi). La règle `/* → /index.html` est déclarée dans `render.yaml` : rien à ajouter dans « Redirects/Rewrites ». Un `404.html` de repli est aussi généré au build.
-3. Renseignez `kim-api` : `DATABASE_URL`, `GEMINI_API_KEY`, `CLOUDINARY_*`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `FRONTEND_URL` (URL de `kim-web`, avec ou sans slash final), puis `kim-web` : `VITE_API_URL` (URL de l'API + `/api/v1`).
+3. Renseignez `kim-api` : `DATABASE_URL`, `GEMINI_API_KEY`, `CLOUDINARY_*`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `FRONTEND_URL` (URL de `kim-web`, avec ou sans slash final), puis `kim-web` : `VITE_API_URL` (URL de l'API + `/api/v1`), `VITE_SITE_URL` (adresse publique du site, pour le référencement).
 4. Exécutez `npm run migrate` (dossier `backend`, même `DATABASE_URL`). Chaque migration n'est jouée qu'une fois ; les données de départ (004, 007) ne sont jamais rejouées : ce que vous modifiez ou supprimez dans l'admin n'est jamais recréé.
 5. L'API gratuite s'endort après 15 min d'inactivité : le site la réveille en silence dès l'ouverture. Le chat affiche déjà l'accueil de Kim avec « Kim se charge… Veuillez patienter un instant, s'il vous plaît. » et débloque la saisie dès que l'API répond (`/api/v1/health`). Pour l'éviter, faites pinger cette adresse toutes les 10 min (UptimeRobot, gratuit).
 6. PWA : le site s'installe sur mobile et ordinateur (bouton « Installer l'application » dans l'en-tête).
@@ -137,5 +137,6 @@ Cinq livrables, chacun documenté dans `docs/corrections/` ; le tableau de suivi
 | 3 | Consentement, politique de confidentialité, comptes, formulaire de salle | `docs/corrections/03-conformite-comptes-formulaires.md` |
 | 4 | Base de connaissances, traduction, catalogue, pied de page | `docs/corrections/04-base-connaissances-traduction-contenu.md` |
 | 5 | Streaming, historique, Markdown, avis, mobile, images, indicateurs | `docs/corrections/05-performance-et-finitions.md` |
+| 6 | Référencement Google/Bing, aperçus de partage, données structurées | `docs/corrections/06-referencement-seo.md` |
 
 Tests : `cd backend && npm test` · `node --test frontend/tests/*.test.mjs` · `node --test evaluation/tests/behavior-metrics.test.mjs evaluation/tests/runner.test.mjs`.

@@ -4,7 +4,11 @@ import { translations } from '../i18n/translations.js';
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  const [lang, setLang] = useState(() => localStorage.getItem('kim_lang') || 'fr');
+  // Adresse avec ?lang=en|ko|fr (liens hreflang, partages) : prioritaire sur le choix mémorisé.
+  const [lang, setLang] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get('lang');
+    return translations[requested] ? requested : (localStorage.getItem('kim_lang') || 'fr');
+  });
 
   useEffect(() => {
     localStorage.setItem('kim_lang', lang);

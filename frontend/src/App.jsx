@@ -7,6 +7,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage } from './pages/PasswordPages.jsx';
 import LegalPage from './pages/LegalPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import NotFoundPage from './pages/NotFoundPage.jsx';
 
 export default function App() {
   return (
@@ -24,7 +25,7 @@ export default function App() {
       {/* Anciennes adresses : une seule connexion pour tous, le rôle choisit l'espace. */}
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="/admin/login" element={<Navigate to="/connexion" replace />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
