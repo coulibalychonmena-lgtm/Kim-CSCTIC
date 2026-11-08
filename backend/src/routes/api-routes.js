@@ -48,6 +48,9 @@ router.get('/health', (_request, response) => {
 router.post('/chat/message', limitRequests(60_000, 30), optionalAuthenticate, validateBody(bodySchemas.chatMessageSchema), chatController.postChatMessage);
 router.post('/chat/stream', limitRequests(60_000, 30), optionalAuthenticate, validateBody(bodySchemas.chatMessageSchema), chatController.postChatStream);
 router.post('/chat/feedback', limitRequests(60_000, 60), validateBody(bodySchemas.chatFeedbackSchema), chatController.postChatFeedback);
+router.get('/chat/sessions', limitRequests(60_000, 30), optionalAuthenticate, chatController.listChatConversations);
+router.delete('/chat/sessions', limitRequests(60_000, 10), optionalAuthenticate, chatController.deleteAllChatConversations);
+router.delete('/chat/session/:sessionId', limitRequests(60_000, 30), optionalAuthenticate, chatController.deleteChatConversation);
 router.get('/chat/session/:sessionId/history', limitRequests(60_000, 30), chatController.getChatHistory);
 router.get('/chat/faq/:topic', limitRequests(60_000, 60), optionalAuthenticate, chatController.getFaqAnswer);
 router.get('/chat/session/:sessionId/human-messages', limitRequests(60_000, 60), chatController.getHumanMessages);

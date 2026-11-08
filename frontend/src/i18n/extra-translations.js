@@ -52,6 +52,8 @@ export const extraTranslations = {
     seo_private_title: 'Mon compte — CSCTICAO', seo_private_desc: 'Espace personnel du CSCTICAO.',
     seo_notfound_title: 'Page introuvable — CSCTICAO', seo_notfound_desc: 'Cette page n\'existe pas. Retournez à l\'accueil du CSCTICAO.',
     not_found_title: 'Page introuvable', not_found_text: 'Cette adresse ne correspond à aucune page du site.', not_found_home: 'Retour à l\'accueil',
+    more_details: 'Voir plus', close: 'Fermer', detail_none: 'Les détails de cette fiche seront bientôt renseignés.', lbl_type: 'Type', lbl_category: 'Catégorie', lbl_conditions: "Conditions d'utilisation", lbl_prerequisites: 'Prérequis', lbl_enrollment: "Conditions d'inscription", lbl_seats: 'Places',
+    history_title: 'Historique', history_empty: 'Aucune conversation enregistrée pour le moment.', history_untitled: 'Conversation', history_messages: 'échanges', history_current: 'en cours', history_delete: 'Supprimer', history_delete_all: "Tout supprimer", history_delete_confirm: 'Supprimer cette conversation ? Son contenu sera effacé définitivement.', history_delete_all_confirm: "Supprimer tout l'historique ? Le contenu de toutes vos conversations sera effacé définitivement.",
     day_1: 'Lundi', day_2: 'Mardi', day_3: 'Mercredi', day_4: 'Jeudi', day_5: 'Vendredi', day_6: 'Samedi', day_7: 'Dimanche',
   },
   en: {
@@ -106,6 +108,8 @@ export const extraTranslations = {
     seo_private_title: 'My account — CSCTICAO', seo_private_desc: 'CSCTICAO personal area.',
     seo_notfound_title: 'Page not found — CSCTICAO', seo_notfound_desc: 'This page does not exist. Go back to the CSCTICAO home page.',
     not_found_title: 'Page not found', not_found_text: 'This address does not match any page of the site.', not_found_home: 'Back to home',
+    more_details: 'See more', close: 'Close', detail_none: 'The details for this item will be added soon.', lbl_type: 'Type', lbl_category: 'Category', lbl_conditions: 'Terms of use', lbl_prerequisites: 'Prerequisites', lbl_enrollment: 'Enrolment conditions', lbl_seats: 'Places',
+    history_title: 'History', history_empty: 'No saved conversation yet.', history_untitled: 'Conversation', history_messages: 'messages', history_current: 'current', history_delete: 'Delete', history_delete_all: 'Delete all', history_delete_confirm: 'Delete this conversation? Its content will be erased permanently.', history_delete_all_confirm: 'Delete the whole history? The content of all your conversations will be erased permanently.',
     day_1: 'Monday', day_2: 'Tuesday', day_3: 'Wednesday', day_4: 'Thursday', day_5: 'Friday', day_6: 'Saturday', day_7: 'Sunday',
   },
   ko: {
@@ -160,6 +164,8 @@ export const extraTranslations = {
     seo_private_title: '내 계정 — CSCTICAO', seo_private_desc: 'CSCTICAO 개인 공간.',
     seo_notfound_title: '페이지를 찾을 수 없습니다 — CSCTICAO', seo_notfound_desc: '존재하지 않는 페이지입니다. CSCTICAO 홈으로 돌아가세요.',
     not_found_title: '페이지를 찾을 수 없습니다', not_found_text: '이 주소에 해당하는 페이지가 없습니다.', not_found_home: '홈으로 돌아가기',
+    more_details: '자세히 보기', close: '닫기', detail_none: '이 항목의 상세 정보는 곧 등록됩니다.', lbl_type: '유형', lbl_category: '분류', lbl_conditions: '이용 조건', lbl_prerequisites: '사전 요건', lbl_enrollment: '등록 조건', lbl_seats: '잔여 인원',
+    history_title: '대화 기록', history_empty: '저장된 대화가 아직 없습니다.', history_untitled: '대화', history_messages: '개 메시지', history_current: '진행 중', history_delete: '삭제', history_delete_all: '모두 삭제', history_delete_confirm: '이 대화를 삭제하시겠습니까? 내용이 영구적으로 삭제됩니다.', history_delete_all_confirm: '모든 대화 기록을 삭제하시겠습니까? 모든 대화 내용이 영구적으로 삭제됩니다.',
     day_1: '월요일', day_2: '화요일', day_3: '수요일', day_4: '목요일', day_5: '금요일', day_6: '토요일', day_7: '일요일',
   },
 };

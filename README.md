@@ -44,7 +44,7 @@ Supabase est la seule base de données : aucune donnée n'est gardée en mémoir
 - **Catalogue** : `ROOMS`, `ACTIVITIES`, `OPENING_HOURS`, `CENTER_INFORMATION`. Kim les relit à chaque message (disponibilités, places restantes, conditions d'inscription, horaires).
 - **Suivi des demandes** : `ROOM_REQUESTS`, `ACTIVITY_REGISTRATIONS`, `PARTNERSHIP_REQUESTS`. Le tableau de bord lit ces tables et se rafraîchit tout seul (15 s).
 - **Conversations** : `CHAT_LOGS` (historique, drapeau d'intervention humaine), `CHAT_TAKEOVERS` et `HUMAN_MESSAGES` (reprise en main par un agent).
-- **Scripts SQL** : `database/migrations/001` à `016`, exécutés dans l'ordre par `npm run migrate` (rejouables sans risque ; la 008 active la sécurité RLS (la 009 crée `SITE_BACKGROUNDS`, protégée de la même façon) qui bloque l'API publique Supabase, seul le backend accède aux données). Pour la démo : ouvrir *SQL Editor* dans Supabase et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
+- **Scripts SQL** : `database/migrations/001` à `017`, exécutés dans l'ordre par `npm run migrate` (rejouables sans risque ; la 008 active la sécurité RLS (la 009 crée `SITE_BACKGROUNDS`, protégée de la même façon) qui bloque l'API publique Supabase, seul le backend accède aux données). Pour la démo : ouvrir *SQL Editor* dans Supabase et lancer `SELECT * FROM ROOM_REQUESTS ORDER BY CREATED_AT DESC;` après une demande faite dans le chat.
 
 ## 3. Renseigner les données du Centre (depuis l'interface)
 Connectez-vous sur `/connexion` (même page pour tous : l'e-mail et le mot de passe `ADMIN_EMAIL` / `ADMIN_PASSWORD` ouvrent l'administration, un compte visiteur ouvre « Mon espace »), puis :
@@ -137,6 +137,7 @@ Cinq livrables, chacun documenté dans `docs/corrections/` ; le tableau de suivi
 | 3 | Consentement, politique de confidentialité, comptes, formulaire de salle | `docs/corrections/03-conformite-comptes-formulaires.md` |
 | 4 | Base de connaissances, traduction, catalogue, pied de page | `docs/corrections/04-base-connaissances-traduction-contenu.md` |
 | 5 | Streaming, historique, Markdown, avis, mobile, images, indicateurs | `docs/corrections/05-performance-et-finitions.md` |
+| 7 | Cartes de taille fixe, fiche complète, chat fixe, historique des conversations | `docs/corrections/07-cartes-chat-fixe-historique.md` |
 | 6 | Référencement Google/Bing, aperçus de partage, données structurées | `docs/corrections/06-referencement-seo.md` |
 
 Tests : `cd backend && npm test` · `node --test frontend/tests/*.test.mjs` · `node --test evaluation/tests/behavior-metrics.test.mjs evaluation/tests/runner.test.mjs`.

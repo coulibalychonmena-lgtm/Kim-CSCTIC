@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import HistoryPanel from './HistoryPanel.jsx';
 import { useChat } from '../context/ChatContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import MessageBubble from './MessageBubble.jsx';
@@ -39,6 +40,7 @@ export default function ChatWindow() {
   const { messages, typing, send, anonymousRemaining, startNewConversation } = useChat();
   const { isReady } = useBackendStatus();
   const [draft, setDraft] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages, typing, isReady]);
@@ -56,11 +58,11 @@ export default function ChatWindow() {
 
   return (
     <section className="chat" aria-label="Kim">
-      {messages.length > 0 && (
-        <div className="chat__tools">
-          <button type="button" className="btn btn--ghost btn--small" onClick={startNewConversation} disabled={typing}>{translate('new_conversation')}</button>
-        </div>
-      )}
+      <div className="chat__tools">
+        <button type="button" className="btn btn--ghost btn--small" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">{translate('history_title')}</button>
+        {messages.length > 0 && <button type="button" className="btn btn--ghost btn--small" onClick={startNewConversation} disabled={typing}>{translate('new_conversation')}</button>}
+      </div>
+      {historyOpen && <HistoryPanel onClose={() => setHistoryOpen(false)} />}
       <div className="chat__log" role="log" aria-live="polite">
         <div className="msg msg--kim">
           <span className="avatar" aria-hidden="true">김</span>

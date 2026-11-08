@@ -276,6 +276,29 @@ export function ChatProvider({ children }) {
     setSessionId(newSessionId);
   }, [lang]);
 
+  /** Historique : liste, ouverture, suppression (le contenu est effacé côté serveur ; le quota, lui, n'est pas remis à zéro). */
+  const listConversations = useCallback(() => chatService.listConversations({ deviceId }, token), [deviceId, token]);
+
+  const openConversation = useCallback((targetSessionId) => {
+    if (targetSessionId === sessionId) return;
+    sessionStorage.setItem('kim_session_id', targetSessionId);
+    displayedAgentMessageIds.current = new Set();
+    historyLoadedFor.current = null; // l'effet de relecture charge la conversation choisie
+    setMessages([]);
+    setWaitingForAgent(false);
+    setSessionId(targetSessionId);
+  }, [sessionId]);
+
+  const deleteConversation = useCallback(async (targetSessionId) => {
+    await chatService.deleteConversation(targetSessionId, { deviceId }, token);
+    if (targetSessionId === sessionId) startNewConversation();
+  }, [deviceId, token, sessionId, startNewConversation]);
+
+  const deleteAllConversations = useCallback(async () => {
+    await chatService.deleteAllConversations({ deviceId }, token);
+    startNewConversation();
+  }, [deviceId, token, startNewConversation]);
+
   /** Pouce haut (1) / bas (-1) sur une réponse de Kim. */
   const rateMessage = useCallback(async (messageId, serverId, rating) => {
     patchMessage(messageId, { rating });
@@ -283,8 +306,8 @@ export function ChatProvider({ children }) {
   }, [patchMessage, sessionId]);
 
   const value = useMemo(
-    () => ({ messages, typing, send, requestAgent, startNewConversation, rateMessage, anonymousRemaining, openForm, completeForm, dismissForm, patchMessage, suggestions, hasVideos: videos.length > 0, runSuggestion, runSlideAction }),
-    [messages, typing, send, requestAgent, startNewConversation, rateMessage, anonymousRemaining, openForm, completeForm, dismissForm, patchMessage, suggestions, videos, runSuggestion, runSlideAction],
+    () => ({ messages, typing, send, requestAgent, startNewConversation, rateMessage, sessionId, listConversations, openConversation, deleteConversation, deleteAllConversations, anonymousRemaining, openForm, completeForm, dismissForm, patchMessage, suggestions, hasVideos: videos.length > 0, runSuggestion, runSlideAction }),
+    [messages, typing, send, requestAgent, startNewConversation, rateMessage, sessionId, listConversations, openConversation, deleteConversation, deleteAllConversations, anonymousRemaining, openForm, completeForm, dismissForm, patchMessage, suggestions, videos, runSuggestion, runSlideAction],
   );
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

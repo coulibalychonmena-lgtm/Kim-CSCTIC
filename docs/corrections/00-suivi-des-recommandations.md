@@ -68,8 +68,11 @@ Légende : **Fait** = corrigé dans le code et testé hors ligne · **Fait + act
 ## Ajout demandé : référencement (hors rapport)
 Code livré (balises par page et langue, hreflang, JSON-LD, sitemap, robots, aperçu de partage, noindex des pages privées, API exclue) : voir `docs/corrections/06-referencement-seo.md`. **Action : définir `VITE_SITE_URL`, déclarer le site dans Search Console / Bing, créer la fiche Google Business Profile.**
 
+## Ajout demandé : cartes, chat fixe, historique
+Cartes de taille fixe avec fiche complète « Voir plus », chat toujours visible, historique des conversations avec suppression : voir `docs/corrections/07-cartes-chat-fixe-historique.md` (migration `017`).
+
 ## À faire de votre côté (récapitulatif)
-1. `cd backend && npm run migrate` (migrations 013 à 016).
+1. `cd backend && npm run migrate` (migrations 013 à 017).
 2. Variables Render : `GOOGLE_CLIENT_ID`, `MAIL_API_KEY`, `MAIL_FROM`, `PUBLIC_SITE_URL`, `EVAL_API_KEY` ; secrets GitHub pour l'évaluation et le keep-alive.
 3. Remplir les modèles `docs/corrections/modeles/*.csv`, puis saisir les données dans l'administration ; remplacer les captures par de vraies photos.
 4. Faire valider les références du golden dataset par le Centre ; lancer la ligne de base puis rejouer.

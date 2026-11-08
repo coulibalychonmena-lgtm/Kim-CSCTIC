@@ -46,6 +46,10 @@ export const chatService = {
   getFaq: (topic, { lang, sessionId, deviceId }, token) => sendApiRequest(
     `/chat/faq/${encodeURIComponent(topic)}?lang=${encodeURIComponent(lang)}&sessionId=${encodeURIComponent(sessionId)}&deviceId=${encodeURIComponent(deviceId)}`, { token },
   ),
+  /** Historique : conversations de l'appareil (et du compte), suppression d'une conversation ou de tout l'historique. */
+  listConversations: ({ deviceId }, token) => sendApiRequest(`/chat/sessions?deviceId=${encodeURIComponent(deviceId)}`, { token }).then((responseBody) => responseBody.data),
+  deleteConversation: (sessionId, { deviceId }, token) => sendApiRequest(`/chat/session/${encodeURIComponent(sessionId)}?deviceId=${encodeURIComponent(deviceId)}`, { method: 'DELETE', token }),
+  deleteAllConversations: ({ deviceId }, token) => sendApiRequest(`/chat/sessions?deviceId=${encodeURIComponent(deviceId)}`, { method: 'DELETE', token }),
   sendFeedback: (feedback) => sendApiRequest('/chat/feedback', { method: 'POST', body: feedback }),
   getHistory: (sessionId) => sendApiRequest(`/chat/session/${encodeURIComponent(sessionId)}/history`).then((responseBody) => responseBody.data),
   getHumanMessages: (sessionId) =>

@@ -75,3 +75,19 @@ export const postChatFeedback = wrapAsyncRoute(async (request, response) => {
 export const getChatHistory = wrapAsyncRoute(async (request, response) => {
   response.json({ data: await chatService.loadSessionHistory(request.params.sessionId) });
 });
+
+const cleanId = (value) => (/^[\w-]{1,64}$/.test(String(value || '')) ? String(value) : null);
+const visitorOf = (request) => ({ deviceId: cleanId(request.query.deviceId), userId: request.user?.role === USER_ROLES.VISITOR ? request.user.sub : null });
+
+/** GET /chat/sessions?deviceId=… : conversations de l'appareil (et du compte connecté). */
+export const listChatConversations = wrapAsyncRoute(async (request, response) => {
+  response.json({ data: await chatService.listConversations(visitorOf(request)) });
+});
+/** DELETE /chat/session/:sessionId?deviceId=… : supprime le contenu d'une conversation. */
+export const deleteChatConversation = wrapAsyncRoute(async (request, response) => {
+  response.json(await chatService.deleteConversations({ sessionId: cleanId(request.params.sessionId), ...visitorOf(request) }));
+});
+/** DELETE /chat/sessions?deviceId=… : supprime tout l'historique du visiteur. */
+export const deleteAllChatConversations = wrapAsyncRoute(async (request, response) => {
+  response.json(await chatService.deleteConversations({ sessionId: null, ...visitorOf(request) }));
+});

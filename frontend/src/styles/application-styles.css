@@ -387,3 +387,60 @@ img { height: auto; }
   .home { padding: .5rem .5rem 2rem; gap: .75rem; }
   .chat { height: calc(100dvh - 9.5rem); min-height: 340px; border-width: 1px; }
 }
+
+/* --- Cartes de taille fixe, fiche complète, chat toujours visible, historique --- */
+.space-card img, .entry-card img { aspect-ratio: 16 / 10; }
+.space-card__body, .entry-card__body { align-items: stretch; gap: .35rem; }
+.space-card .orange-title h3, .entry-card h3 {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; line-height: 1.3; margin: 0;
+}
+.entry-card h3 { color: var(--ink); font-size: 1.15rem; min-height: 2.6em; }
+.space-card .orange-title .zigzag { margin-bottom: .25rem; }
+.card-meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 1.4em; }
+.space-card__text { -webkit-line-clamp: 3; min-height: 4.5em; line-height: 1.5; margin: 0; }
+.card-summary { margin: 0; min-height: 1.4em; font-size: .88rem; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-actions { margin-top: auto; padding-top: .6rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+.card-cta { margin-top: auto; }
+
+dialog.detail { border: none; border-radius: var(--radius); padding: 0; width: min(680px, calc(100vw - 1.5rem)); max-height: calc(100dvh - 2rem); box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+dialog.detail::backdrop { background: rgba(0,0,0,.55); }
+.detail__inner { position: relative; padding: 0 0 1.25rem; overflow-y: auto; max-height: calc(100dvh - 2rem); }
+.detail__inner > :not(.detail__photo):not(.detail__close) { margin-left: 1.25rem; margin-right: 1.25rem; }
+.detail__photo { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.detail__close { position: absolute; top: .6rem; right: .6rem; z-index: 1; width: 2.2rem; height: 2.2rem; border-radius: 50%; border: none; background: rgba(0,0,0,.65); color: #fff; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.detail__inner h2 { color: var(--orange); margin: 1rem 1.25rem .4rem; }
+.detail__text { white-space: pre-line; line-height: 1.55; }
+.detail__list { display: grid; gap: .55rem; margin-top: .75rem; margin-bottom: 0; }
+.detail__row { display: grid; grid-template-columns: 9rem 1fr; gap: .75rem; padding-top: .55rem; border-top: 1px solid var(--line); }
+.detail__row dt { color: #666; }
+.detail__row dd { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.detail__row ul { margin: 0; padding-left: 1.1rem; }
+.detail__actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.1rem; }
+@media (max-width: 520px) { .detail__row { grid-template-columns: 1fr; gap: .1rem; } }
+
+/* Catalogue de la colonne du chat : lignes compactes, la fiche s'ouvre au clic */
+.catalog__item { display: flex; align-items: center; gap: .65rem; width: 100%; padding: .1rem 0; background: none; border: none; text-align: left; cursor: pointer; font: inherit; color: inherit; border-radius: 8px; }
+.catalog__item:hover, .catalog__item:focus-visible { background: var(--paper); }
+.catalog__thumb { width: 64px; height: 48px; flex: none; object-fit: cover; border-radius: 6px; margin: 0; }
+.catalog__text { display: flex; flex-direction: column; min-width: 0; }
+.catalog__text .muted { font-size: .82rem; }
+
+/* Chat toujours visible : il reste en haut de l'écran pendant que la colonne des espaces et formations défile */
+@media (min-width: 861px) {
+  .home__chat { position: sticky; top: .75rem; align-self: start; }
+  .home__chat .chat { height: calc(100dvh - 15rem); min-height: 420px; }
+}
+
+/* Historique des conversations (par-dessus le fil du chat) */
+.chat { position: relative; }
+.history { position: absolute; inset: 0; z-index: 5; background: var(--white); padding: .9rem 1rem; display: flex; flex-direction: column; gap: .6rem; overflow-y: auto; }
+.history__head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.history__head h2 { margin: 0; font-size: 1.1rem; }
+.history__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.history__item { display: flex; align-items: stretch; gap: .4rem; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.history__item.is-current { border-color: var(--orange); background: #fff7f3; }
+.history__open { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; padding: .55rem .7rem; background: none; border: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.history__open strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history__open .muted { font-size: .8rem; }
+.history__delete { align-self: center; margin-right: .4rem; }
+.history__delete-all { align-self: flex-start; margin-top: .4rem; }

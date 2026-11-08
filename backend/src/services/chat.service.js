@@ -13,7 +13,7 @@ const QUOTA_ERROR_CODES = { login_required: 'LOGIN_REQUIRED', client_cap: 'CLIEN
 
 async function loadHistory(sessionId) {
   const historyRows = await query(
-    `SELECT USER_MESSAGE, KIM_RESPONSE FROM CHAT_LOGS WHERE SESSION_ID = ?
+    `SELECT USER_MESSAGE, KIM_RESPONSE FROM CHAT_LOGS WHERE SESSION_ID = ? AND DELETED_AT IS NULL
      ORDER BY CREATED_AT DESC LIMIT 10`,
     [sessionId],
   );
@@ -161,8 +161,47 @@ export async function loadSessionHistory(sessionId) {
     `SELECT log.ID, log.USER_MESSAGE, log.KIM_RESPONSE, log.DETECTED_LANGUAGE, log.NEEDS_HUMAN, log.AGENT_OFFERED, log.CREATED_AT,
             feedback.RATING
      FROM CHAT_LOGS log LEFT JOIN CHAT_FEEDBACK feedback ON feedback.CHAT_LOG_ID = log.ID AND feedback.SESSION_ID = log.SESSION_ID
-     WHERE log.SESSION_ID = ? ORDER BY log.CREATED_AT DESC LIMIT 30`,
+     WHERE log.SESSION_ID = ? AND log.DELETED_AT IS NULL ORDER BY log.CREATED_AT DESC LIMIT 30`,
     [sessionId],
   );
   return exchanges.reverse();
+}
+
+// ---------------------------------------------------------------------------
+// Historique des conversations d'un visiteur (appareil ou compte) : liste, suppression
+// ---------------------------------------------------------------------------
+
+/** Conditions d'appartenance : l'appareil (identifiant stocké dans le navigateur) ou le compte connecté. */
+const ownership = ({ deviceId, userId }) => ({
+  clause: '(DEVICE_ID = ? OR USER_ID = ?)',
+  binds: [deviceId || null, userId || null],
+});
+
+/** Les 30 dernières conversations (titre = première question), de la plus récente à la plus ancienne. */
+export async function listConversations({ deviceId, userId }) {
+  if (!deviceId && !userId) return [];
+  const { clause, binds } = ownership({ deviceId, userId });
+  return query(
+    `SELECT SESSION_ID, MIN(CREATED_AT) AS STARTED_AT, MAX(CREATED_AT) AS LAST_AT, COUNT(*) AS EXCHANGES,
+            (ARRAY_AGG(USER_MESSAGE ORDER BY CREATED_AT) FILTER (WHERE USER_MESSAGE NOT LIKE '[FAQ %'))[1] AS TITLE
+     FROM CHAT_LOGS WHERE ${clause} AND DELETED_AT IS NULL AND KIM_RESPONSE IS NOT NULL
+     GROUP BY SESSION_ID ORDER BY MAX(CREATED_AT) DESC LIMIT 30`,
+    binds,
+  );
+}
+
+/**
+ * Supprime une conversation (`sessionId`) ou toutes celles du visiteur (sans sessionId). Le contenu est effacé ; la ligne technique
+ * anonymisée reste, pour que le quota ne puisse pas être remis à zéro en supprimant l'historique.
+ */
+export async function deleteConversations({ sessionId = null, deviceId, userId }) {
+  if (!deviceId && !userId) throw new AppError(400, 'Appareil non identifié.');
+  const { clause, binds } = ownership({ deviceId, userId });
+  const deleted = await query(
+    `UPDATE CHAT_LOGS SET USER_MESSAGE = '[supprimé]', KIM_RESPONSE = NULL, CITED_SOURCE = NULL, DELETED_AT = NOW()
+     WHERE ${clause} AND DELETED_AT IS NULL AND (?::text IS NULL OR SESSION_ID = ?) RETURNING ID`,
+    [...binds, sessionId, sessionId],
+  );
+  if (sessionId && !deleted.length) throw new AppError(404, 'Conversation introuvable.');
+  return { deleted: deleted.length };
 }

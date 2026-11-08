@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import BackgroundSection from '../components/BackgroundSection.jsx';
 import DirectorMessage from '../components/DirectorMessage.jsx';
 import OrangeTitle from '../components/OrangeTitle.jsx';
 import Seo from '../components/Seo.jsx';
+import ItemDetailDialog from '../components/ItemDetailDialog.jsx';
 import SiteFooter from '../components/SiteFooter.jsx';
 import { EventsList, NewsList } from '../components/EntryLists.jsx';
 import { VideoList } from '../components/VideoPlayer.jsx';
@@ -66,6 +67,7 @@ export default function LandingPage() {
   const contacts = centerInformation.filter((entry) => /contact/i.test(entry.category));
   const hoursByDay = new Map(openingHours.map((day) => [Number(day.day_of_week), day]));
 
+  const [detail, setDetail] = useState(null); // { kind: 'room' | 'activity', item }
   const structuredData = useMemo(() => ({ information: centerInformation, openingHours, events }), [centerInformation, openingHours, events]);
 
   return (
@@ -93,17 +95,15 @@ export default function LandingPage() {
                   {room.image_url && <img {...responsiveImageProps(room.image_url)} alt={room.name} loading="lazy" decoding="async" />}
                   <div className="space-card__body">
                     <OrangeTitle as="h3">{room.name}</OrangeTitle>
-                    <p className="muted">{room.space_type}</p>
-                    {room.description && <p className="space-card__text">{room.description}</p>}
-                    <dl className="fiche">
-                      <FicheRow label={translate('capacity')} value={room.max_capacity ? `${room.max_capacity} ${translate('persons')}` : null} />
-                      <FicheRow label={translate('lbl_surface')} value={room.surface_m2 ? `${room.surface_m2} m²` : null} />
-                      <FicheRow label={translate('lbl_equipment')} value={room.equipment?.length ? room.equipment.join(', ') : null} />
-                      <FicheRow label={translate('lbl_price')} value={room.pricing} />
-                    </dl>
-                    {room.status === AVAILABLE_ROOM_STATUS && (
-                      <Link to={`/chat?form=room&room=${encodeURIComponent(room.id)}`} className="btn btn--primary btn--small card-cta">{translate('room_cta')}</Link>
-                    )}
+                    <p className="muted card-meta">{room.space_type}</p>
+                    <p className="space-card__text">{room.description || ''}</p>
+                    <p className="card-summary">{[room.max_capacity ? `${room.max_capacity} ${translate('persons')}` : null, room.surface_m2 ? `${room.surface_m2} m²` : null].filter(Boolean).join(' · ')}</p>
+                    <div className="card-actions">
+                      <button type="button" className="btn btn--ghost btn--small" onClick={() => setDetail({ kind: 'room', item: room })}>{translate('more_details')}</button>
+                      {room.status === AVAILABLE_ROOM_STATUS && (
+                        <Link to={`/chat?form=room&room=${encodeURIComponent(room.id)}`} className="btn btn--primary btn--small">{translate('room_cta')}</Link>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -135,16 +135,14 @@ export default function LandingPage() {
                 <li key={activity.id} className="entry-card">
                   {activity.image_url && <img {...responsiveImageProps(activity.image_url)} alt={activity.title} loading="lazy" decoding="async" />}
                   <div className="entry-card__body">
-                    <p className="entry-card__date">{activity.category}</p>
-                    <h3>{activity.title}</h3>
-                    {activity.description && <p className="space-card__text">{activity.description}</p>}
-                    <dl className="fiche">
-                      <FicheRow label={translate('lbl_audience')} value={activity.age_range_label} />
-                      <FicheRow label={translate('lbl_schedule')} value={activity.schedule} />
-                      <FicheRow label={translate('lbl_duration')} value={activity.duration} />
-                      <FicheRow label={translate('lbl_price')} value={activity.price} />
-                    </dl>
-                    <Link to={`/chat?form=register&activity=${encodeURIComponent(activity.id)}`} className="btn btn--primary btn--small card-cta">{translate('activity_cta')}</Link>
+                    <p className="entry-card__date card-meta">{activity.category}</p>
+                    <h3 className="card-title">{activity.title}</h3>
+                    <p className="space-card__text">{activity.description || ''}</p>
+                    <p className="card-summary">{[activity.age_range_label, activity.schedule].filter(Boolean).join(' · ')}</p>
+                    <div className="card-actions">
+                      <button type="button" className="btn btn--ghost btn--small" onClick={() => setDetail({ kind: 'activity', item: activity })}>{translate('more_details')}</button>
+                      <Link to={`/chat?form=register&activity=${encodeURIComponent(activity.id)}`} className="btn btn--primary btn--small">{translate('activity_cta')}</Link>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -199,6 +197,12 @@ export default function LandingPage() {
         </BackgroundSection>
       </main>
       <DirectorMessage />
+      {detail && (
+        <ItemDetailDialog kind={detail.kind} item={detail.item} onClose={() => setDetail(null)}
+          action={detail.kind === 'room'
+            ? (detail.item.status === AVAILABLE_ROOM_STATUS && <Link to={`/chat?form=room&room=${encodeURIComponent(detail.item.id)}`} className="btn btn--primary">{translate('room_cta')}</Link>)
+            : <Link to={`/chat?form=register&activity=${encodeURIComponent(detail.item.id)}`} className="btn btn--primary">{translate('activity_cta')}</Link>} />
+      )}
       <SiteFooter />
     </>
   );
